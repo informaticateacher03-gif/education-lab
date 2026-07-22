@@ -1,0 +1,12 @@
+{
+  "name": "AI & AR Lab — образовательная платформа",
+  "short_name": "AI & AR Lab",
+  "description": "Курс об искусственном интеллекте и дополненной реальности для 10 класса",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f6ff",
+  "theme_color": "#111a45",
+  "lang": "ru",
+  "icons": [{ "src": "assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
