@@ -456,3 +456,65 @@ body.lesson-page {
   .asyk-options button { grid-template-columns: auto 1fr; text-align: left; align-items: center; }
   .asyk-options span { grid-row: 1 / 3; }
 }
+
+.ai-definition-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ai-layers {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin: 32px 0;
+}
+
+.ai-layers > div {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  flex: 1;
+  padding: 20px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(145deg, #fff, #f3f1ff);
+}
+
+.ai-layers b { color: var(--violet); }
+.ai-layers span { font-weight: 800; }
+.ai-layers small { color: var(--muted); line-height: 1.5; }
+.ai-layers > i { align-self: center; color: var(--violet); font-style: normal; }
+
+.system-lab {
+  margin: 48px 0;
+  padding: 32px;
+  overflow: hidden;
+  border: 1px solid #35436f;
+  border-radius: 24px;
+  color: #fff;
+  background: radial-gradient(circle at 90% 10%, #2d3978, transparent 35%), #111a45;
+  box-shadow: var(--shadow);
+}
+
+.system-lab > p:not(.eyebrow) { color: #b9c4df; }
+.system-lab h3 { margin: 0 0 8px; font-size: clamp(24px, 3vw, 34px); }
+.system-scenarios { display: flex; flex-wrap: wrap; gap: 9px; margin: 25px 0; }
+.system-scenarios button { min-height: 46px; padding: 10px 15px; border: 1px solid #4b5887; border-radius: 30px; color: #dbe2f5; background: #1c2751; cursor: pointer; }
+.system-scenarios button.active { border-color: #6bd6f1; color: #fff; background: linear-gradient(135deg, #6b56dd, #278ead); }
+.system-pipeline { display: flex; align-items: stretch; gap: 10px; }
+.system-pipeline > div { display: grid; gap: 7px; min-width: 0; flex: 1; padding: 20px; border: 1px solid #3d4b7a; border-radius: 15px; background: rgba(255,255,255,.06); }
+.system-pipeline small { color: #72d8f3; text-transform: uppercase; letter-spacing: .12em; }
+.system-pipeline strong { overflow-wrap: anywhere; }
+.system-pipeline i { align-self: center; color: #72d8f3; font-style: normal; }
+.system-question { margin: 22px 0 0; padding: 16px; border-left: 4px solid #72d8f3; background: rgba(255,255,255,.06); }
+
+@media (max-width: 760px) {
+  .ai-layers, .system-pipeline { display: grid; grid-template-columns: 1fr; }
+  .ai-layers > i, .system-pipeline > i { justify-self: center; transform: rotate(90deg); }
+  .system-lab { padding: 24px 18px; }
+}
+
+@media (max-width: 600px) {
+  .ai-definition-grid { grid-template-columns: 1fr; }
+  .system-scenarios { display: grid; }
+  .system-scenarios button { width: 100%; text-align: left; }
+}

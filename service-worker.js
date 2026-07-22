@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ai-ar-lab-v3';
+const CACHE_NAME = 'ai-ar-lab-v4';
 const APP_SHELL = [
   './', './index.html', './lesson.html', './presentation.html',
   './css/styles.css', './css/lesson.css', './css/presentation.css',

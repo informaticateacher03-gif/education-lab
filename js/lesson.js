@@ -8,6 +8,23 @@ document.title = `Урок ${lesson.id}. ${lesson.title} — AI & AR Lab`;
 document.querySelector('#header-lesson-number').textContent = `Урок ${String(lesson.id).padStart(2, '0')} / ${courseData.lessons.length}`;
 
 function buildTheory() {
+  if (lesson.id === 2) {
+    return `
+      <div class="definition-grid ai-definition-grid">
+        <article><span>01</span><h3>Алгоритм</h3><p>Пошаговая инструкция. Обычная программа выполняет правила, которые заранее записал человек.</p></article>
+        <article><span>02</span><h3>Модель</h3><p>Обученная математическая система. Она получает входные данные и формирует прогноз или решение.</p></article>
+        <article><span>03</span><h3>Машинное обучение</h3><p>Способ создавать модели не перечислением всех правил, а обучением на большом количестве примеров.</p></article>
+        <article><span>04</span><h3>Интерфейс</h3><p>Часть системы, через которую человек передаёт запрос и получает понятный результат.</p></article>
+      </div>
+      <div class="brain-compare"><div class="brain-icon">⚙</div><div><h3>ИИ — это не одна «умная кнопка»</h3><p>Рабочая система объединяет данные, алгоритм обучения, модель, вычислительное устройство и интерфейс. Человек формулирует задачу, проверяет качество и отвечает за применение результата.</p></div></div>
+      <div class="ai-layers" aria-label="Устройство системы искусственного интеллекта">
+        <div><b>1</b><span>Входные данные</span><small>Текст, изображение, звук или числа</small></div>
+        <i>→</i><div><b>2</b><span>Обученная модель</span><small>Ищет признаки и закономерности</small></div>
+        <i>→</i><div><b>3</b><span>Результат</span><small>Класс, прогноз, рекомендация или контент</small></div>
+        <i>→</i><div><b>4</b><span>Проверка человеком</span><small>Оценка точности и безопасности</small></div>
+      </div>`;
+  }
+
   if (lesson.id === 1) {
     return `
       <div class="definition-grid">
@@ -39,11 +56,44 @@ function buildTimeline() {
 function buildApplicationCards() {
   const labels = lesson.id === 1
     ? [['🎓', 'Образование'], ['⚕', 'Медицина'], ['🚙', 'Транспорт'], ['文', 'Перевод'], ['◈', 'Изображения'], ['♫', 'Музыка и видео'], ['◉', 'Помощники'], ['▥', 'Анализ данных']]
-    : [['◈', 'Наблюдаем', 'Изучаем пример и выделяем важные признаки.'], ['✦', 'Проектируем', `Планируем результат: ${lesson.product}.`], ['↻', 'Улучшаем', 'Сравниваем версии и дорабатываем решение.'], ['✓', 'Проверяем', 'Оцениваем качество, достоверность и безопасность.']];
+    : lesson.id === 2
+      ? [['⌨', 'Текст', 'Запрос пользователя превращается в числа, которые может обработать модель.'], ['◉', 'Изображение', 'Модель ищет признаки: формы, контуры, цвета и их сочетания.'], ['♫', 'Звук', 'Аудиосигнал делится на фрагменты и сравнивается с изученными примерами.'], ['▥', 'Числа', 'Система анализирует показатели и строит прогноз.']]
+      : [['◈', 'Наблюдаем', 'Изучаем пример и выделяем важные признаки.'], ['✦', 'Проектируем', `Планируем результат: ${lesson.product}.`], ['↻', 'Улучшаем', 'Сравниваем версии и дорабатываем решение.'], ['✓', 'Проверяем', 'Оцениваем качество, достоверность и безопасность.']];
   return `<div class="use-grid">${labels.map(item => `<article><span>${item[0]}</span><h3>${item[1]}</h3><p>${item[2] || 'Пример применения технологии в повседневной и профессиональной деятельности.'}</p></article>`).join('')}</div>`;
 }
 
+function buildLessonActivity() {
+  if (lesson.id !== 2) return '';
+  const scenarios = [
+    ['photo', 'Распознать животное на фото', 'Фотография', 'Модель классификации изображений', 'Название животного и вероятность'],
+    ['translate', 'Перевести короткую фразу', 'Текст на русском языке', 'Языковая модель перевода', 'Текст на выбранном языке'],
+    ['music', 'Предложить новую музыку', 'История прослушиваний', 'Рекомендательная модель', 'Список подходящих треков']
+  ];
+  return `<div class="system-lab"><p class="eyebrow">Интерактивная лаборатория</p><h3>Разберите ИИ-систему на части</h3><p>Выберите задачу и проследите путь информации от входа до результата.</p><div class="system-scenarios">${scenarios.map((item, index) => `<button type="button" class="${index === 0 ? 'active' : ''}" data-input="${item[2]}" data-model="${item[3]}" data-output="${item[4]}" aria-pressed="${index === 0}">${item[1]}</button>`).join('')}</div><div class="system-pipeline" id="system-pipeline"><div><small>Вход</small><strong>${scenarios[0][2]}</strong></div><i>→</i><div><small>Модель</small><strong>${scenarios[0][3]}</strong></div><i>→</i><div><small>Выход</small><strong>${scenarios[0][4]}</strong></div></div><p class="system-question"><strong>Вопрос:</strong> где в этой цепочке необходим человек? До запуска он задаёт цель и подбирает данные, а после — проверяет результат.</p></div>`;
+}
+
+function buildPracticeFields() {
+  if (lesson.id === 2) {
+    return `<label>1. Задача системы<textarea class="practice-input" rows="4" spellcheck="true" placeholder="Какую задачу должна решать ваша ИИ-система и для кого?"></textarea></label><label>2. Вход → модель → результат<textarea class="practice-input" rows="4" spellcheck="true" placeholder="Какие данные поступают на вход, что делает модель и что получается на выходе?"></textarea></label><label>3. Контроль человека<textarea class="practice-input" rows="4" spellcheck="true" placeholder="Как проверить точность, безопасность и полезность результата?"></textarea></label>`;
+  }
+  return `<label>1. Замысел и цель<textarea class="practice-input" rows="4" spellcheck="true" placeholder="Что вы хотите создать и для кого?"></textarea></label><label>2. Ход работы<textarea class="practice-input" rows="4" spellcheck="true" placeholder="Опишите инструменты, запросы и принятые решения."></textarea></label><label>3. Проверка результата<textarea class="practice-input" rows="4" spellcheck="true" placeholder="Что получилось? Что нужно улучшить?"></textarea></label>`;
+}
+
 function buildQuiz() {
+  if (lesson.id === 2) {
+    const questions = [
+      ['Что поступает в ИИ-систему на вход?', ['Данные', 'Только готовый ответ', 'Оценка учителя', 'Электрическая схема'], 'Данные', 'На вход поступают данные: текст, изображение, звук или числа.'],
+      ['Что такое модель?', ['Обученная система, которая преобразует вход в результат', 'Любой файл на компьютере', 'Только человекоподобный робот', 'Экран приложения'], 'Обученная система, которая преобразует вход в результат', 'Модель находит в данных изученные закономерности и формирует прогноз или ответ.'],
+      ['Чем машинное обучение отличается от обычного набора правил?', ['Модель настраивается на примерах', 'Компьютер работает без данных', 'Правила всегда пишет ученик', 'Результат невозможно проверить'], 'Модель настраивается на примерах', 'При машинном обучении параметры модели подбираются на множестве примеров.'],
+      ['Какую роль выполняет интерфейс?', ['Помогает человеку передать запрос и увидеть результат', 'Самостоятельно обучает любую модель', 'Заменяет данные', 'Гарантирует абсолютную точность'], 'Помогает человеку передать запрос и увидеть результат', 'Интерфейс связывает пользователя с внутренними компонентами системы.'],
+      ['Где находится человек в работе ИИ-системы?', ['Формулирует задачу и проверяет результат', 'Не участвует совсем', 'Только включает компьютер', 'Всегда заменяется моделью'], 'Формулирует задачу и проверяет результат', 'Человек отвечает за цель, качество данных, проверку и решение о применении.'],
+      ['Что может быть результатом модели классификации?', ['Название класса и вероятность', 'Только новый компьютер', 'Электрический ток', 'Пароль пользователя'], 'Название класса и вероятность', 'Классификатор определяет наиболее вероятную категорию объекта.'],
+      ['Почему результат ИИ может быть неверным?', ['Данные могут быть недостаточными или содержать ошибки', 'Модель всегда знает контекст', 'Интерфейс слишком красивый', 'Потому что алгоритмов не существует'], 'Данные могут быть недостаточными или содержать ошибки', 'Качество модели зависит от данных, постановки задачи и условий применения.'],
+      ['Какой порядок описывает работу системы?', ['Входные данные → модель → результат → проверка', 'Результат → данные → случайный ответ', 'Интерфейс → выключение → модель', 'Проверка → отсутствие данных → ответ'], 'Входные данные → модель → результат → проверка', 'Так можно описать базовый цикл работы интеллектуальной системы.']
+    ];
+    return questions.map(([q, answers, correctText, why]) => ({ q, answers, correctText, why, correct: answers.indexOf(correctText) }));
+  }
+
   const distractorLessons = courseData.lessons.filter(item => item.id !== lesson.id).slice((lesson.id * 3) % 20, (lesson.id * 3) % 20 + 3);
   return [
     { q: 'Какова главная цель этого урока?', answers: shuffle([lesson.goal, ...distractorLessons.map(item => item.goal)]), correctText: lesson.goal, why: `Цель урока — ${lesson.goal}.` },
@@ -78,6 +128,7 @@ document.querySelector('#lesson-content').innerHTML = `
     <div class="process-info" id="process-info" aria-live="polite">Нажмите на этап, чтобы увидеть пояснение.</div>
     ${buildTimeline()}
     <h3 class="subheading">Связь с практикой</h3>${buildApplicationCards()}
+    ${buildLessonActivity()}
     <div class="remember"><span>!</span><div><h3>Важно помнить</h3><p>Проверяйте факты, защищайте персональные данные, отмечайте использование ИИ и оценивайте, действительно ли технология помогает решить задачу.</p></div></div>
   </section>
   <section class="lesson-section content-section soft" id="presentation">
@@ -85,9 +136,7 @@ document.querySelector('#lesson-content').innerHTML = `
   </section>
   <section class="lesson-section content-section" id="practice">
     <p class="eyebrow">Практическая работа</p><h2>Создайте: ${lesson.product}</h2><div class="task-card"><p>Выполняйте работу по этапам. Ответы сохраняются автоматически на этом устройстве.</p>
-      <label>1. Замысел и цель<textarea class="practice-input" rows="4" spellcheck="true" placeholder="Что вы хотите создать и для кого?"></textarea></label>
-      <label>2. Ход работы<textarea class="practice-input" rows="4" spellcheck="true" placeholder="Опишите инструменты, запросы и принятые решения."></textarea></label>
-      <label>3. Проверка результата<textarea class="practice-input" rows="4" spellcheck="true" placeholder="Что получилось? Что нужно улучшить?"></textarea></label><small id="save-status" role="status">Ответы сохраняются автоматически</small>
+      ${buildPracticeFields()}<small id="save-status" role="status">Ответы сохраняются автоматически</small>
     </div>
     <div class="portfolio-card"><div><p class="eyebrow">Портфолио ученика</p><h3>Сохраните результат урока</h3><p>Добавьте название, описание и при необходимости ссылку на созданную работу.</p></div><label>Название работы<input id="portfolio-title" type="text" maxlength="100" value="${lesson.product}"></label><label>Описание<textarea id="portfolio-description" rows="3" placeholder="Кратко опишите результат и свой вклад."></textarea></label><label>Ссылка на работу<input id="portfolio-link" type="url" inputmode="url" placeholder="https://…"></label><button type="button" class="button primary" id="save-portfolio">Добавить в портфолио</button><p id="portfolio-status" role="status"></p></div>
   </section>
@@ -95,7 +144,7 @@ document.querySelector('#lesson-content').innerHTML = `
     <p class="eyebrow">Словарь новых слов</p><h2>Ключевые понятия урока</h2><div class="glossary-grid">${lesson.terms.map((item, index) => `<details ${index === 0 ? 'open' : ''}><summary>${item.term}</summary><p>${item.definition}</p><label>Моё объяснение<input class="term-note" data-term="${item.term}" type="text" placeholder="Объясните своими словами"></label></details>`).join('')}</div>
   </section>
   <section class="lesson-section content-section" id="quiz">
-    <p class="eyebrow">Проверка знаний</p><h2>Тест по уроку</h2><p class="section-lead">Пять вопросов, один ответ в каждом. Ошибки можно разобрать, а тест — пройти повторно.</p><div class="quiz-card" id="quiz-card" aria-live="polite"></div>
+    <p class="eyebrow">Проверка знаний</p><h2>Тест по уроку</h2><p class="section-lead">${quiz.length} вопросов, один ответ в каждом. Ошибки можно разобрать, а тест — пройти повторно.</p><div class="quiz-card" id="quiz-card" aria-live="polite"></div>
   </section>
   <section class="lesson-section content-section soft" id="finish">
     <p class="eyebrow">Рефлексия «Асык»</p><h2>Выберите состояние после урока</h2><p class="section-lead">Цветной асык поможет быстро зафиксировать, насколько уверенно вы освоили материал.</p>
@@ -125,6 +174,13 @@ document.querySelectorAll('#process button').forEach(button => button.addEventLi
   document.querySelectorAll('#process button').forEach(item => item.setAttribute('aria-pressed', 'false'));
   button.setAttribute('aria-pressed', 'true');
   document.querySelector('#process-info').textContent = button.dataset.info;
+}));
+
+document.querySelectorAll('.system-scenarios button').forEach(button => button.addEventListener('click', () => {
+  document.querySelectorAll('.system-scenarios button').forEach(item => { item.classList.remove('active'); item.setAttribute('aria-pressed', 'false'); });
+  button.classList.add('active');
+  button.setAttribute('aria-pressed', 'true');
+  document.querySelector('#system-pipeline').innerHTML = `<div><small>Вход</small><strong>${button.dataset.input}</strong></div><i>→</i><div><small>Модель</small><strong>${button.dataset.model}</strong></div><i>→</i><div><small>Выход</small><strong>${button.dataset.output}</strong></div>`;
 }));
 
 document.querySelectorAll('.timeline button').forEach(button => button.addEventListener('click', () => {
