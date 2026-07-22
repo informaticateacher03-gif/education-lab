@@ -8,9 +8,20 @@ moduleGrid.innerHTML = courseData.modules.map((module, index) => `
     <div class="module-meta"><span>${module.hours} ${module.hours === 4 ? 'часа' : 'часов'}</span><span>${index === 0 ? 'Доступен' : 'Скоро'}</span></div>
   </article>`).join('');
 
-lessonList.innerHTML = courseData.lessons.map((lesson, index) => index === 0 ? `
-  <a class="lesson-row active" href="lesson.html"><span class="lesson-index">01</span><span><strong>${lesson}</strong><small>45 минут · интерактивный урок</small></span><span class="status available">Начать →</span></a>` : `
-  <div class="lesson-row"><span class="lesson-index">${String(index + 1).padStart(2, '0')}</span><span><strong>${lesson}</strong><small>Урок ${index + 1}</small></span><span class="status">Скоро</span></div>`).join('');
+const firstLessonResourceLinks = ['lesson.html#intro', 'presentation.html', 'lesson.html#practice', 'lesson.html#history', 'lesson.html#practice', 'lesson.html#finish'];
+lessonList.innerHTML = courseData.lessons.map((lesson, index) => {
+  const number = String(index + 1).padStart(2, '0');
+  const href = index === 0 ? 'lesson.html' : `course/lesson${number}/`;
+  const resourceButtons = courseData.resources.map((resource, resourceIndex) => `
+    <a class="lesson-resource-button ${index === 0 ? '' : 'is-upcoming'}" href="${index === 0 ? firstLessonResourceLinks[resourceIndex] : href}" aria-label="${resource.label}, урок ${index + 1}${index === 0 ? '' : ', скоро'}">
+      <span aria-hidden="true">${resource.icon}</span>${resource.label}
+    </a>`).join('');
+  return `<article class="lesson-row ${index === 0 ? 'active' : ''}">
+    <span class="lesson-index">${number}</span>
+    <div class="lesson-info"><a class="lesson-title" href="${href}"><strong>${lesson}</strong><small>${index === 0 ? '45 минут · интерактивный урок' : `Урок ${index + 1} · 1 час`}</small></a><div class="lesson-resources">${resourceButtons}</div></div>
+    <a class="status ${index === 0 ? 'available' : ''}" href="${href}">${index === 0 ? 'Начать →' : 'Скоро'}</a>
+  </article>`;
+}).join('');
 
 function updateProgress() {
   const value = ProgressStore.percent();
