@@ -322,3 +322,137 @@ body.lesson-page {
 @keyframes confetti-fall {
   to { transform: translateY(105vh) rotate(720deg); }
 }
+
+.embedded-presentation {
+  margin: 30px 0 18px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: #0b1233;
+  box-shadow: var(--shadow);
+}
+
+.embedded-presentation iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.presentation-open {
+  display: inline-flex;
+}
+
+.portfolio-card {
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
+  margin: 45px auto 0;
+  padding: 32px;
+  border: 1px solid #cfd8f1;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #f4f1ff, #effaff);
+}
+
+.portfolio-card h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.portfolio-card label,
+.glossary-grid label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.portfolio-card input,
+.portfolio-card textarea,
+.glossary-grid input {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  font: inherit;
+}
+
+#portfolio-status {
+  min-height: 24px;
+  margin: 0;
+  color: #258866;
+  font-weight: 700;
+}
+
+.glossary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 35px;
+}
+
+.glossary-grid details {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.glossary-grid summary {
+  color: #5940c8;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.glossary-grid p {
+  color: var(--muted);
+}
+
+.asyk-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 32px 0;
+}
+
+.asyk-options button {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 22px 14px;
+  border: 2px solid transparent;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 10px 25px rgba(23, 32, 62, 0.07);
+  cursor: pointer;
+}
+
+.asyk-options span {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.asyk-options button:nth-child(1) span { color: #28a879; }
+.asyk-options button:nth-child(2) span { color: #328cd8; }
+.asyk-options button:nth-child(3) span { color: #d5a721; }
+.asyk-options button:nth-child(4) span { color: #d85c58; }
+.asyk-options button.active { border-color: #7158e8; transform: translateY(-3px); }
+.asyk-options small { color: var(--muted); }
+.lesson-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+
+@media (max-width: 800px) {
+  .glossary-grid { grid-template-columns: 1fr; }
+  .asyk-options { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 600px) {
+  .embedded-presentation { aspect-ratio: 4 / 5; border-radius: 16px; }
+  .portfolio-card { padding: 22px 16px; }
+  .asyk-options { grid-template-columns: 1fr; }
+  .asyk-options button { grid-template-columns: auto 1fr; text-align: left; align-items: center; }
+  .asyk-options span { grid-row: 1 / 3; }
+}

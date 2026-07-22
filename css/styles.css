@@ -3,3 +3,20 @@
 @media(max-width:900px){.menu-button{display:block}.main-nav{display:none;position:absolute;top:68px;left:16px;right:16px;padding:20px;flex-direction:column;background:white;border-radius:16px;box-shadow:var(--shadow)}.main-nav.open{display:flex}.hero{grid-template-columns:1fr}.hero-visual{height:400px}.about-grid{grid-template-columns:1fr}.module-grid{grid-template-columns:repeat(2,1fr)}.results-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.section{padding:70px 18px}.hero{padding-top:45px}.hero h1{font-size:39px}.button-row{flex-direction:column}.hero-facts{flex-wrap:wrap;gap:10px 18px}.hero-visual{height:330px;border-radius:25px}.orbit-two{width:310px;height:310px}.orbit-one{width:230px;height:230px}.core{width:125px;height:125px}.module-grid,.results-grid{grid-template-columns:1fr}.lesson-row{grid-template-columns:38px 1fr;padding:14px}.lesson-row .status{grid-column:2;justify-self:start}.progress-section{margin:30px 12px;grid-template-columns:1fr;padding:35px 25px}.progress-ring{grid-row:2}.author{grid-template-columns:1fr}.author-mark{height:180px}footer{flex-direction:column;gap:15px;text-align:center}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+.status.completed { background: #dff6ec; color: #217a5d; }
+.lesson-row.active { min-width: 0; }
+.lesson-row.active > span:nth-child(2) { min-width: 0; }
+.lesson-row.active strong { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .lesson-row.active { padding: 16px 14px; }
+  .lesson-row.active:hover { padding-left: 14px; }
+}
+.portfolio-preview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.portfolio-preview article, .portfolio-empty { min-width: 0; padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
+.portfolio-preview article span { color: var(--violet); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.portfolio-preview article h3 { margin: 8px 0; overflow-wrap: anywhere; }
+.portfolio-preview article p { color: var(--muted); }
+.portfolio-preview article a { color: var(--violet); font-weight: 700; }
+.portfolio-empty { grid-column: 1 / -1; color: var(--muted); text-align: center; background: var(--pale); }
+@media (max-width: 900px) { .portfolio-preview { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .portfolio-preview { grid-template-columns: 1fr; } }

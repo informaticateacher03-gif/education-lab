@@ -97,3 +97,10 @@ body,
     padding: 0 6px;
   }
 }
+
+body.embedded .deck-brand { top: 18px; left: 22px; font-size: 10px; }
+body.embedded .slide { padding: 10vh 7vw 17vh; }
+body.embedded .slide h1 { font-size: clamp(27px, 5vw, 58px); }
+body.embedded .lead { font-size: clamp(14px, 1.8vw, 21px); }
+body.embedded .deck-controls { bottom: 12px; }
+body.embedded .deck-controls a { display: none; }
