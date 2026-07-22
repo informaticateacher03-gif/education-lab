@@ -8,9 +8,16 @@ moduleGrid.innerHTML = courseData.modules.map((module, index) => `
     <div class="module-meta"><span>${module.hours} ${module.hours === 4 ? 'часа' : 'часов'}</span><span>${index === 0 ? 'Доступен' : 'Скоро'}</span></div>
   </article>`).join('');
 
-lessonList.innerHTML = courseData.lessons.map((lesson, index) => index === 0 ? `
-  <a class="lesson-row active" href="lesson.html"><span class="lesson-index">01</span><span><strong>${lesson}</strong><small>45 минут · интерактивный урок</small></span><span class="status available">Начать →</span></a>` : `
-  <div class="lesson-row"><span class="lesson-index">${String(index + 1).padStart(2, '0')}</span><span><strong>${lesson}</strong><small>Урок ${index + 1}</small></span><span class="status">Скоро</span></div>`).join('');
+const resourceIcons = courseData.resources.map(resource => `<span title="${resource.label}" aria-label="${resource.label}">${resource.icon}<small>${resource.label}</small></span>`).join('');
+lessonList.innerHTML = courseData.lessons.map((lesson, index) => {
+  const number = String(index + 1).padStart(2, '0');
+  const href = index === 0 ? 'lesson.html' : `course/lesson${number}/`;
+  return `<a class="lesson-row ${index === 0 ? 'active' : ''}" href="${href}">
+    <span class="lesson-index">${number}</span>
+    <span class="lesson-info"><strong>${lesson}</strong><small>${index === 0 ? '45 минут · интерактивный урок' : `Урок ${index + 1} · 1 час`}</small><span class="lesson-resources">${resourceIcons}</span></span>
+    <span class="status ${index === 0 ? 'available' : ''}">${index === 0 ? 'Начать →' : 'Скоро'}</span>
+  </a>`;
+}).join('');
 
 function updateProgress() {
   const value = ProgressStore.percent();

@@ -1,6 +1,6 @@
 const ProgressStore = {
   key: 'aiArCourseProgress',
-  defaults: { lesson1Completed: false, bestQuizScore: 0, reflection: {}, practice: ['', '', ''] },
+  defaults: { lesson1Completed: false, completedLessons: [], bestQuizScore: 0, reflection: {}, practice: ['', '', ''] },
   get() {
     try { return { ...this.defaults, ...JSON.parse(localStorage.getItem(this.key) || '{}') }; }
     catch { return { ...this.defaults }; }
@@ -11,5 +11,9 @@ const ProgressStore = {
     window.dispatchEvent(new CustomEvent('course-progress', { detail: data }));
     return data;
   },
-  percent() { return this.get().lesson1Completed ? 3 : 0; }
+  completedCount() {
+    const data = this.get();
+    return new Set([...(data.completedLessons || []), ...(data.lesson1Completed ? [1] : [])]).size;
+  },
+  percent() { return Math.round(this.completedCount() / 34 * 100); }
 };
