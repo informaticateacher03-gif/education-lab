@@ -53,9 +53,33 @@ async function checkVideo(browser) {
   await page.goto('file://' + path.join(__dirname, 'render/video.html'));
 
   const meta = await page.evaluate(() => ({ D: LogicVideo.DURATION, FPS: LogicVideo.FPS, segs: LogicVideo.SEGMENTS, tl: LogicVideo.timeline() }));
-  ok('Длительность 45–60 с, 30 FPS', meta.D >= 45 && meta.D <= 60 && meta.FPS === 30, `${meta.D} с`);
-  const want = [['intro', 0, 4], ['AND', 4, 11], ['OR', 11, 18], ['NOT', 18, 23], ['NAND', 23, 29], ['NOR', 29, 35], ['XOR', 35, 42], ['XNOR', 42, 49], ['final', 49, 56]];
-  ok('Сценарий: тайм-коды сегментов', meta.segs.every((s, i) => (s.id || s.type) === want[i][0] && s.start === want[i][1] && s.end === want[i][2]));
+  ok('Длительность 45–70 с, 30 FPS', meta.D >= 45 && meta.D <= 70 && meta.FPS === 30, `${meta.D} с`);
+  const order = ['intro', 'AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR', 'XNOR', 'final'];
+  ok('Сценарий: порядок сцен, сцены идут встык', meta.segs.every((s, i) => (s.id || s.type) === order[i] && (i === 0 ? s.start === 0 : s.start === meta.segs[i - 1].end) && s.end > s.start)
+    && meta.segs[meta.segs.length - 1].end === meta.D, meta.segs.map((s) => `${s.id || s.type} ${s.start}–${s.end}`).join(', '));
+
+  // озвучка: каждая фраза звучит внутри своей сцены, субтитры совпадают с репликами
+  const vt = await page.evaluate(() => window.VOICE_TIMING || null);
+  if (vt) {
+    const script = JSON.parse(fs.readFileSync(path.join(__dirname, 'voice/script.json'), 'utf8'));
+    const segOf = (id) => meta.segs.find((s) => (s.id || s.type) === id);
+    const badPh = vt.phrases.filter((p) => { const sp = script.phrases.find((x) => x.id === p.id); const sg = segOf(sp.segment);
+      return !(p.start >= sg.start && p.start + p.dur <= sg.end - 0.3); });
+    ok('Озвучка: каждая реплика внутри своей сцены (голос синхронен со схемой)', badPh.length === 0 && vt.phrases.length === script.phrases.length,
+      `${vt.phrases.length} реплик, движок: ${vt.engine}`);
+    const wantSubs = script.phrases.flatMap((p) => p.sub);
+    const subsText = vt.subs.map((s) => s.text);
+    const overlap = vt.subs.some((s, i) => i && s.start < vt.subs[i - 1].end);
+    ok('Субтитры: дословно текст озвучки, без наложений', JSON.stringify(subsText) === JSON.stringify(wantSubs) && !overlap, `${vt.subs.length} субтитров`);
+    const subBad = await page.evaluate((subs) => {
+      const bad = [];
+      subs.forEach((s) => { const inf = renderAt((s.start + s.end) / 2); if (inf.subtitle !== s.text) bad.push(s.text); });
+      const gaps = [0.05, LogicVideo.DURATION - 0.1].filter((t) => !LogicVideo.subtitleAt(t)).map((t) => renderAt(t).subtitle);
+      if (gaps.some((x) => x)) bad.push('субтитр вне реплики');
+      return bad;
+    }, vt.subs);
+    ok('Субтитры показываются в кадре синхронно с репликами', subBad.length === 0, subBad.join('; '));
+  }
   // порядок комбинаций и значения в таймлайне
   let tlOk = true;
   for (const g of LC.GATES) {
@@ -87,7 +111,8 @@ async function checkVideo(browser) {
 
   const fin = await page.evaluate(() => {
     const bad = [];
-    for (let t = 50.5; t < 56; t += 0.25) {
+    const fin = LogicVideo.SEGMENTS[LogicVideo.SEGMENTS.length - 1];
+    for (let t = fin.start + 1.5; t < fin.end; t += 0.25) {
       const inf = renderAt(t);
       inf.rows.forEach((r) => { if (r.vals) { r.ex = LogicCore.evalGate(LogicCore.GATE[r.id], r.vals); if (r.out !== r.ex) bad.push(r); } });
     }
@@ -105,7 +130,7 @@ async function checkVideo(browser) {
         const h = b.y1 - b.y0;
         if (h < minH && b.str.trim()) { minH = h; minStr = b.str; }
         // бегущие цифры «бинарного дождя» и импульсы заставки уходят за край намеренно
-        const decorative = i / 30 < 4 && /^[01]$/.test(b.str);
+        const decorative = i / 30 < LogicVideo.SEGMENTS[0].end && /^[01]$/.test(b.str) && b.y1 - b.y0 < 40;
         if (!decorative && (b.x0 < 16 || b.x1 > 1064 || b.y0 < 16 || b.y1 > 1904)) out.push({ t: i / 30, ...b });
       });
     }
@@ -172,7 +197,23 @@ function checkMp4() {
   const dur = +j.format.duration;
   ok('MP4: H.264, 1080×1920, 30 FPS, yuv420p', v.codec_name === 'h264' && v.width === 1080 && v.height === 1920 && v.r_frame_rate === '30/1' && v.pix_fmt === 'yuv420p',
     `${v.codec_name} ${v.width}×${v.height} ${v.r_frame_rate} ${v.pix_fmt}`);
-  ok('MP4: длительность 45–60 с, есть звук', dur >= 45 && dur <= 60 && a && a.codec_name === 'aac', `${dur.toFixed(2)} с, аудио ${a && a.codec_name}, ${(fs.statSync(f).size / 1e6).toFixed(1)} МБ`);
+  ok('MP4: длительность 45–70 с, есть звук', dur >= 45 && dur <= 70 && a && a.codec_name === 'aac', `${dur.toFixed(2)} с, аудио ${a && a.codec_name}, ${(fs.statSync(f).size / 1e6).toFixed(1)} МБ`);
+}
+
+// Проверка голоса в готовом MP4: распознаём речь в каждом окне реплики (Whisper small, sherpa-onnx)
+// и сравниваем со сценарием. Так подтверждается, что голос реально есть и разборчив поверх музыки.
+function checkVoiceInMp4() {
+  const f = path.join(__dirname, 'logic_gates_reels.mp4');
+  const tf = path.join(__dirname, 'src/voice-timing.js');
+  if (!fs.existsSync(f) || !fs.existsSync(tf)) return;
+  let out;
+  try {
+    out = execFileSync('python3', [path.join(__dirname, 'voice/check_voice.py'), f], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch (e) { ok('Голос в MP4 распознаётся', false, 'check_voice.py: ' + (e.stdout || e.message).slice(0, 200)); return; }
+  const r = JSON.parse(out);
+  r.phrases.forEach((p) => ok(`Голос в MP4: «${p.id}» распознан (сходство ≥ 0.75)`, p.score >= 0.75, `${p.score.toFixed(2)} — «${p.heard}»`));
+  ok('Голос громче музыки (стемы, окна реплик) ≥ 12 дБ', r.voice_over_music_db >= 12, `${r.voice_over_music_db.toFixed(1)} дБ`);
+  ok('Вне реплик голосовая дорожка тихая (нет «фиктивного» голоса)', r.silence_ok, '');
 }
 
 (async () => {
@@ -183,6 +224,7 @@ function checkMp4() {
   await checkInteractive(browser);
   await browser.close();
   checkMp4();
+  checkVoiceInMp4();
   const failed = results.filter((r) => !r.pass);
   const md = ['# Отчёт проверки', '', `Дата: ${new Date().toISOString()}`, '', '| Проверка | Результат | Детали |', '|---|---|---|',
     ...results.map((r) => `| ${r.name} | ${r.pass ? '✅' : '❌'} | ${r.detail.replace(/\|/g, '/')} |`), '',

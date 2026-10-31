@@ -15,6 +15,7 @@ const fs = require('fs');
 const ROOT = path.resolve(__dirname, '..');
 const BUILD = path.join(ROOT, 'build');
 const OUT_MP4 = path.join(ROOT, 'logic_gates_reels.mp4');
+const OUT_SRT = path.join(ROOT, 'logic_gates_reels.srt');
 const OUT_POSTER = path.join(ROOT, 'logic_gates_poster.png');
 fs.mkdirSync(BUILD, { recursive: true });
 
@@ -41,8 +42,18 @@ async function main() {
   const events = await page.evaluate(() => LogicVideo.audioEvents());
   const evPath = path.join(BUILD, 'audio_events.json');
   fs.writeFileSync(evPath, JSON.stringify({ duration: DURATION, events }, null, 1));
-  const wavPath = path.join(BUILD, 'sfx.wav');
-  execFileSync('python3', [path.join(__dirname, 'make_sfx.py'), evPath, wavPath], { stdio: 'inherit' });
+  const wavPath = path.join(BUILD, 'mix.wav');
+  execFileSync('python3', [path.join(__dirname, 'make_audio.py'), evPath, wavPath, BUILD], { stdio: 'inherit' });
+
+  // субтитры .srt (те же, что вшиты в кадр)
+  const subs = await page.evaluate(() => LogicVideo.SUBS);
+  const ts = (x) => { const ms = Math.round(x * 1000); const p = (n, l = 2) => String(n).padStart(l, '0');
+    return `${p(Math.floor(ms / 3600000))}:${p(Math.floor(ms / 60000) % 60)}:${p(Math.floor(ms / 1000) % 60)},${p(ms % 1000, 3)}`; };
+  if (subs.length) {
+    fs.writeFileSync(OUT_SRT, subs.map((s, i) => `${i + 1}\n${ts(s.start)} --> ${ts(s.end)}\n${s.text}\n`).join('\n'));
+    console.log('✔ субтитры:', OUT_SRT);
+  }
+  if (process.argv.includes('--audio-only')) { await browser.close(); return; }
 
   // видео без звука
   const silent = path.join(BUILD, 'video_silent.mp4');
@@ -68,7 +79,7 @@ async function main() {
 
   // склейка со звуком
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', silent, '-i', wavPath,
-    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', OUT_MP4], { stdio: 'inherit' });
+    '-c:v', 'copy', '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11', '-ar', '48000', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', OUT_MP4], { stdio: 'inherit' });
   console.log('✔ видео:', OUT_MP4, `(${N} кадров, ${((Date.now() - t0) / 1000).toFixed(0)} c)`);
 }
 

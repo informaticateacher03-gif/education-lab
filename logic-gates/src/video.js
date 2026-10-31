@@ -10,7 +10,10 @@
 
   const W = 1080, H = 1920, FPS = 30;
 
-  const SEGMENTS = [
+  // Тайминг берётся из src/voice-timing.js (сгенерирован под длительности озвучки).
+  // Без него — исходная немая версия 56 с.
+  const VT = root.VOICE_TIMING || null;
+  const SEGMENTS = VT ? VT.segments : [
     { type: 'intro', start: 0, end: 4 },
     { type: 'gate', id: 'AND', start: 4, end: 11 },
     { type: 'gate', id: 'OR', start: 11, end: 18 },
@@ -21,7 +24,8 @@
     { type: 'gate', id: 'XNOR', start: 42, end: 49 },
     { type: 'final', start: 49, end: 56 },
   ];
-  const DURATION = 56;
+  const DURATION = VT ? VT.duration : 56;
+  const SUBS = VT ? VT.subs : [];
   const GATE_ORDER = SEGMENTS.filter((s) => s.type === 'gate').map((s) => s.id);
 
   // ------------------------------------------------ расписание шагов вентиля
@@ -39,10 +43,12 @@
   }
 
   // финальная композиция: общий цикл комбинаций для всех 7 схем
-  const FINAL = { rowsIn: 0.12, comboStart: 1.3, comboDur: 1.1, textAt: 2.3, footAt: 3.1 };
-  const FINAL_COMBOS = [[0, 0], [0, 1], [1, 0], [1, 1], [0, 0]];
+  const FINAL = Object.assign({ rowsIn: 0.12, comboStart: 1.3, comboDur: 1.1, textAt: 2.3, footAt: 3.1 }, VT ? VT.final : {});
+  const BASE_COMBOS = [[0, 0], [0, 1], [1, 0], [1, 1]];
   function finalSteps() {
-    return FINAL_COMBOS.map((v, k) => ({ k, vals: v, t: FINAL.comboStart + k * FINAL.comboDur }));
+    const fin = SEGMENTS[SEGMENTS.length - 1];
+    const n = Math.floor((fin.end - fin.start - FINAL.comboStart - 0.4) / FINAL.comboDur) + 1;
+    return Array.from({ length: n }, (_, k) => ({ k, vals: BASE_COMBOS[k % 4], t: FINAL.comboStart + k * FINAL.comboDur }));
   }
 
   /** Список всех шагов в глобальном времени — для звука и проверки. */
@@ -62,7 +68,7 @@
   function audioEvents() {
     const ev = [];
     ev.push({ t: 0.25, type: 'power' });
-    ev.push({ t: 1.9, type: 'chime' });
+    if (!VT) ev.push({ t: 1.9, type: 'chime' });
     SEGMENTS.forEach((s) => { if (s.type !== 'intro') ev.push({ t: s.start + 0.05, type: 'whoosh' }); });
     timeline().forEach((st) => {
       ev.push({ t: st.t, type: 'click' });
@@ -71,6 +77,7 @@
     const fin = SEGMENTS[SEGMENTS.length - 1];
     finalSteps().forEach((st) => ev.push({ t: fin.start + st.t, type: 'click' }));
     ev.push({ t: fin.start + FINAL.textAt, type: 'chime' });
+    if (VT) VT.phrases.forEach((p) => ev.push({ t: p.start, type: 'voice', file: p.file, dur: p.dur }));
     return ev.sort((a, b) => a.t - b.t);
   }
 
@@ -351,7 +358,7 @@
       ctx.save(); ctx.globalAlpha *= fa;
       const tableBottom = 1100 + 100 * (g.inputs === 1 ? 2 : 3);
       richText(ctx, formulaSegs(g), W / 2, tableBottom + 95, { size: 60, weight: 800, glow: 10, maxWidth: 900 });
-      text(ctx, g.rule, W / 2, tableBottom + 170, { size: 34, weight: 600, color: '#8d96c4', maxWidth: 960 });
+      if (!VT) text(ctx, g.rule, W / 2, tableBottom + 170, { size: 34, weight: 600, color: '#8d96c4', maxWidth: 960 });
       ctx.restore();
     }
 
@@ -452,15 +459,48 @@
     return SEGMENTS[SEGMENTS.length - 1];
   }
 
+  // ------------------------------------------------ субтитры
+  function subtitleAt(t) {
+    for (const s of SUBS) if (t >= s.start && t < s.end) return s;
+    return null;
+  }
+  function drawSubtitle(ctx, t, seg) {
+    const s = subtitleAt(t);
+    if (!s) return null;
+    const a = Math.min(smooth(s.start, s.start + 0.12, t), 1 - smooth(s.end - 0.12, s.end, t));
+    const o = { size: 46, weight: 700 };
+    const lines = wrap(ctx, s.text, 900, o);
+    const lh = 58;
+    const cy = seg.type === 'final' ? 1475 : 1640;
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.font = `700 46px ${LC.FONT}`;
+    const bw = Math.min(1000, Math.max(...lines.map((l) => ctx.measureText(l).width)) + 56);
+    const bh = lines.length * lh + 26;
+    ctx.fillStyle = 'rgba(2,3,10,0.72)';
+    roundRect(ctx, W / 2 - bw / 2, cy - bh / 2, bw, bh, 18); ctx.fill();
+    ctx.strokeStyle = 'rgba(130,145,230,0.35)'; ctx.lineWidth = 2; ctx.stroke();
+    lines.forEach((ln, i) => {
+      const y = cy - ((lines.length - 1) * lh) / 2 + i * lh;
+      // английские названия элементов — жёлтым, как на схемах
+      const segs = ln.split(/(\b(?:XNOR|XOR|NAND|NOR|AND|OR|NOT)\b)/).filter(Boolean)
+        .map((w) => (/^(XNOR|XOR|NAND|NOR|AND|OR|NOT)$/.test(w) ? { t: w, color: C.name, glow: 8 } : { t: w, color: '#ffffff' }));
+      richText(ctx, segs, W / 2, y, { size: 46, weight: 700, maxWidth: 960 });
+    });
+    ctx.restore();
+    return s.text;
+  }
+
   function renderFrame(ctx, t) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     LC.background(ctx, W, H, t);
     const seg = segmentAt(t);
-    if (seg.type === 'intro') drawIntro(ctx, t, seg);
+    if (seg.type === 'intro') { drawIntro(ctx, t, seg); info.last = { seg: 'INTRO' }; }
     else if (seg.type === 'gate') drawGateSeg(ctx, t, seg);
     else drawFinal(ctx, t, seg);
     ctx.globalAlpha = 1;
+    info.last.subtitle = drawSubtitle(ctx, t, seg);
     return info.last;
   }
 
@@ -483,6 +523,6 @@
 
   root.LogicVideo = {
     W, H, FPS, DURATION, SEGMENTS, renderFrame, renderPoster, timeline, audioEvents,
-    gateSteps, finalSteps, lampScreen, FOCUS, ROWS, info,
+    gateSteps, finalSteps, lampScreen, FOCUS, ROWS, info, SUBS, VT, subtitleAt,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
