@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Логические элементы — сцена видео (1080×1920)</title>
+<style>
+  html, body { margin: 0; background: #000; }
+  canvas { display: block; }
+  body.preview { display: flex; flex-direction: column; align-items: center; color: #ccd; font: 14px sans-serif; }
+  body.preview canvas { height: 88vh; width: auto; }
+  #bar { display: none; gap: 8px; padding: 8px; align-items: center; }
+  body.preview #bar { display: flex; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<div id="bar"><button id="play">▶ / ⏸</button><input id="seek" type="range" min="0" max="56" step="0.033" value="0" style="width:420px"><span id="tm">0.0</span></div>
+<script src="../src/logic-core.js"></script>
+<script src="../src/video.js"></script>
+<script>
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  window.renderAt = (t) => LogicVideo.renderFrame(ctx, t);
+  window.renderPosterNow = () => LogicVideo.renderPoster(ctx);
+  // Режим предпросмотра: video.html?preview
+  if (location.search.includes('preview')) {
+    document.body.classList.add('preview');
+    let playing = true, t0 = performance.now(), base = 0;
+    const seek = document.getElementById('seek'), tm = document.getElementById('tm');
+    document.getElementById('play').onclick = () => { playing = !playing; base = +seek.value; t0 = performance.now(); };
+    seek.oninput = () => { base = +seek.value; t0 = performance.now(); if (!playing) renderAt(base); };
+    (function loop() {
+      if (playing) {
+        let t = base + (performance.now() - t0) / 1000;
+        if (t >= LogicVideo.DURATION) { base = 0; t0 = performance.now(); t = 0; }
+        renderAt(t); seek.value = t; tm.textContent = t.toFixed(1);
+      }
+      requestAnimationFrame(loop);
+    })();
+  } else {
+    renderAt(0);
+  }
+</script>
+</body>
+</html>

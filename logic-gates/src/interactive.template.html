@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Логические элементы — интерактивная лаборатория</title>
+<style>
+  :root {
+    --one: #2bff6b; --zero: #ff3546; --name: #ffd23a; --text: #cfd6ff; --muted: #8d96c4;
+    --panel: rgba(10, 14, 34, 0.78); --line: rgba(130, 145, 230, 0.3);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: #020308 radial-gradient(circle at 15% 10%, rgba(60,25,160,.35), transparent 45%),
+                radial-gradient(circle at 90% 60%, rgba(20,50,150,.3), transparent 45%);
+    background-attachment: fixed;
+    color: var(--text); font-family: "Inter", "Segoe UI", "DejaVu Sans", Arial, sans-serif;
+  }
+  body::before { content: ""; position: fixed; inset: 0; pointer-events: none;
+    background-image: linear-gradient(rgba(90,120,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(90,120,255,.06) 1px, transparent 1px);
+    background-size: 36px 36px; }
+  main { position: relative; max-width: 980px; margin: 0 auto; padding: 18px 14px 40px; }
+  header h1 { margin: 6px 0 2px; font-size: clamp(24px, 5vw, 38px); font-weight: 900; color: #fff; text-shadow: 0 0 18px rgba(111,155,255,.6); }
+  header p { margin: 0 0 14px; color: var(--muted); }
+  .bit0 { color: var(--zero); text-shadow: 0 0 10px var(--zero); font-weight: 800; }
+  .bit1 { color: var(--one); text-shadow: 0 0 10px var(--one); font-weight: 800; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .chip { cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    padding: 9px 14px; border-radius: 999px; font: inherit; font-weight: 800; letter-spacing: .02em; transition: .2s; }
+  .chip small { font-weight: 600; color: var(--muted); margin-left: 4px; }
+  .chip:hover { border-color: var(--name); }
+  .chip[aria-pressed="true"] { color: #1a1300; background: var(--name); border-color: var(--name); box-shadow: 0 0 18px rgba(255,210,58,.55); }
+  .chip[aria-pressed="true"] small { color: #3d3000; }
+
+  .grid { display: grid; grid-template-columns: 1.55fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 14px; backdrop-filter: blur(6px); }
+
+  .title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .title h2 { margin: 0; color: var(--name); font-size: clamp(30px, 6vw, 46px); font-weight: 900; text-shadow: 0 0 20px rgba(255,210,58,.6); }
+  .title span { color: #ffe38a; font-weight: 800; font-size: 20px; }
+  .caption { margin: 4px 0 6px; color: var(--text); font-size: 17px; }
+  canvas { width: 100%; height: auto; display: block; cursor: pointer; touch-action: manipulation; }
+
+  .inputs { display: flex; gap: 10px; margin-top: 6px; }
+  .toggle { flex: 1; cursor: pointer; font: inherit; font-weight: 900; font-size: 22px; padding: 12px; border-radius: 14px;
+    border: 2px solid var(--zero); background: rgba(255,53,70,.12); color: #fff; transition: .2s; }
+  .toggle b { margin-left: 8px; color: var(--zero); text-shadow: 0 0 12px var(--zero); }
+  .toggle[aria-pressed="true"] { border-color: var(--one); background: rgba(43,255,107,.12); }
+  .toggle[aria-pressed="true"] b { color: var(--one); text-shadow: 0 0 12px var(--one); }
+  .toggle[hidden] { display: none; }
+  .out { margin-top: 10px; text-align: center; font-size: 22px; font-weight: 800; font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+
+  table { width: 100%; border-collapse: collapse; font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; font-size: 24px; text-align: center; }
+  th { color: #fff; font-weight: 800; padding: 8px; border-bottom: 2px solid rgba(255,255,255,.3); }
+  td { padding: 9px; border-bottom: 1px solid var(--line); font-weight: 800; }
+  tbody tr { cursor: pointer; transition: background .2s; }
+  tbody tr:hover { background: rgba(255,255,255,.05); }
+  tbody tr.active { background: rgba(255,210,58,.14); outline: 2px solid var(--name); outline-offset: -2px; box-shadow: 0 0 18px rgba(255,210,58,.35); }
+  td.v1 { color: var(--one); text-shadow: 0 0 10px var(--one); }
+  td.v0 { color: var(--zero); text-shadow: 0 0 10px var(--zero); }
+  .formula { margin: 14px 0 4px; text-align: center; font-size: 26px; font-weight: 900; color: #fff; }
+  .formula .ov { text-decoration: overline; text-decoration-thickness: 3px; color: #ffe38a; }
+  .rule { text-align: center; color: var(--muted); font-size: 15px; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .btn { cursor: pointer; font: inherit; font-weight: 800; padding: 10px 16px; border-radius: 12px; border: 1px solid var(--line);
+    background: rgba(30,40,90,.7); color: #fff; }
+  .btn:hover { border-color: #6f9bff; box-shadow: 0 0 14px rgba(111,155,255,.45); }
+  .btn.primary { background: linear-gradient(135deg, #4c22a6, #1d3b8f); }
+  .btn[disabled] { opacity: .45; cursor: default; box-shadow: none; }
+  .status { margin-top: 8px; color: var(--muted); font-size: 14px; min-height: 1.3em; }
+  .hint { color: var(--muted); font-size: 13px; margin-top: 10px; }
+  footer { margin-top: 22px; text-align: center; color: #ffe38a; font-weight: 800; letter-spacing: .04em; }
+  kbd { border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Как компьютер думает с помощью <span class="bit0">0</span> и <span class="bit1">1</span></h1>
+    <p>Интерактивная цифровая лаборатория: выбери логический элемент и переключай входы.</p>
+  </header>
+
+  <nav class="chips" id="chips" aria-label="Выбор логического элемента"></nav>
+
+  <section class="grid">
+    <div class="panel">
+      <div class="title"><h2 id="gName">AND</h2><span id="gRu">«И»</span></div>
+      <p class="caption" id="gCaption"></p>
+      <canvas id="cv" width="1360" height="640" aria-label="Схема логического элемента"></canvas>
+      <div class="inputs">
+        <button class="toggle" id="tA" aria-pressed="false">A <b>0</b></button>
+        <button class="toggle" id="tB" aria-pressed="false">B <b>0</b></button>
+      </div>
+      <div class="out" id="outLine"></div>
+      <div class="controls">
+        <button class="btn primary" id="bDemo">▶ Автодемонстрация</button>
+        <button class="btn" id="bStop" disabled>⏸ Стоп</button>
+        <button class="btn" id="bRepeat">↺ Повторить</button>
+        <button class="btn" id="bSound" aria-pressed="true">🔊 Звук</button>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin:0 0 8px;color:#fff">Таблица истинности</h3>
+      <table id="tt"><thead></thead><tbody></tbody></table>
+      <div class="formula" id="formula"></div>
+      <div class="rule" id="rule"></div>
+      <p class="hint">Нажми на кружок входа на схеме, на кнопку или на строку таблицы. Клавиши: <kbd>A</kbd>, <kbd>B</kbd>, <kbd>Пробел</kbd> — демо, <kbd>1</kbd>–<kbd>7</kbd> — элемент.</p>
+    </div>
+  </section>
+  <footer>ИНФОРМАТИКА С АННОЙ КОЛТУНОВОЙ</footer>
+</main>
+
+<script>
+/*@@CORE@@*/
+</script>
+<script>
+(function () {
+  'use strict';
+  const LC = window.LogicCore;
+  const { GATES, GATE, TIMING } = LC;
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const $ = (id) => document.getElementById(id);
+
+  const S = {
+    gate: GATE.AND, vals: [0, 0], prev: null, tIn: 99, time: 0,
+    demo: false, demoIdx: 0, demoNext: 0, sound: true, lastOut: null, outAnnounced: true,
+  };
+
+  // ---------- звук (WebAudio, без файлов)
+  let ac = null;
+  function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } } return ac; }
+  function beep(freq, dur, type = 'sine', vol = 0.15) {
+    if (!S.sound) return; const a = audio(); if (!a) return;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+    o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime + dur);
+  }
+  const sClick = () => beep(1900, 0.03, 'square', 0.06);
+  const sOut = (v) => (v ? beep(1046.5, 0.25, 'sine', 0.14) : beep(261.6, 0.25, 'triangle', 0.16));
+
+  // ---------- геометрия холста
+  const BOX = LC.CIRCUIT_BOX;
+  function view() {
+    const s = Math.min(cv.width / (BOX.x1 - BOX.x0 + 40), cv.height / (BOX.y1 - BOX.y0 + 60));
+    return { s, ox: cv.width / 2 - ((BOX.x0 + BOX.x1) / 2) * s, oy: cv.height / 2 };
+  }
+
+  // ---------- состояние
+  function setInputs(vals, fromUser) {
+    const g = S.gate;
+    const v = g.inputs === 1 ? [vals[0]] : [vals[0], vals[1]];
+    if (S.vals && v.every((x, i) => x === S.vals[i]) && S.tIn > TIMING.FLIP) return;
+    S.prev = S.vals ? S.vals.slice() : null;
+    S.vals = v; S.tIn = 0; S.outAnnounced = false;
+    sClick();
+    if (fromUser && S.demo) stopDemo('Демонстрация остановлена — ручной режим.');
+    syncUI();
+  }
+  function toggle(i) {
+    if (i === 1 && S.gate.inputs === 1) return;
+    const v = S.vals.slice(); v[i] = v[i] ? 0 : 1; setInputs(v, true);
+  }
+  function selectGate(id) {
+    S.gate = GATE[id];
+    S.vals = S.gate.inputs === 1 ? [0] : [0, 0];
+    S.prev = null; S.tIn = 0; S.outAnnounced = false;
+    buildStatic(); syncUI();
+    if (S.demo) { S.demoIdx = 0; S.demoNext = performance.now() + 1400; }
+  }
+
+  // ---------- автодемонстрация
+  function startDemo(fromStart) {
+    S.demo = true;
+    if (fromStart) { S.demoIdx = 0; setInputs(LC.combos(S.gate)[0], false); }
+    S.demoNext = performance.now() + 1500;
+    $('bDemo').disabled = true; $('bStop').disabled = false;
+    $('status').textContent = 'Автодемонстрация: перебираем все комбинации входов…';
+  }
+  function stopDemo(msg) {
+    S.demo = false; $('bDemo').disabled = false; $('bStop').disabled = true;
+    $('status').textContent = msg || 'Демонстрация остановлена.';
+  }
+  function demoTick(now) {
+    if (!S.demo || now < S.demoNext) return;
+    const cs = LC.combos(S.gate);
+    S.demoIdx = (S.demoIdx + 1) % cs.length;
+    setInputs(cs[S.demoIdx], false);
+    S.demoNext = now + 1500;
+  }
+
+  // ---------- интерфейс
+  function buildChips() {
+    const nav = $('chips');
+    GATES.forEach((g, i) => {
+      const b = document.createElement('button');
+      b.className = 'chip'; b.dataset.id = g.id;
+      b.innerHTML = `${g.id}<small>${g.ru}</small>`;
+      b.title = `${i + 1}: ${g.id} — ${g.ru}`;
+      b.onclick = () => selectGate(g.id);
+      nav.appendChild(b);
+    });
+  }
+  function buildStatic() {
+    const g = S.gate;
+    document.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.id === g.id)));
+    $('gName').textContent = g.id; $('gRu').textContent = `«${g.ru}»`;
+    $('gCaption').textContent = g.caption; $('rule').textContent = g.rule;
+    $('tB').hidden = g.inputs === 1;
+    const exprHtml = g.expr.replace('·', ' · ').replace('+', ' + ').replace('⊕', ' ⊕ ');
+    $('formula').innerHTML = `OUT = <span class="${g.inv ? 'ov' : ''}">${exprHtml}</span>`;
+    const head = g.inputs === 1 ? ['A', 'OUT'] : ['A', 'B', 'OUT'];
+    document.querySelector('#tt thead').innerHTML = '<tr>' + head.map((h) => `<th>${h}</th>`).join('') + '</tr>';
+    const tb = document.querySelector('#tt tbody'); tb.innerHTML = '';
+    LC.truthTable(g).forEach((row) => {
+      const tr = document.createElement('tr');
+      tr.dataset.key = row.in.join('');
+      tr.innerHTML = row.in.concat(row.out).map((v) => `<td class="v${v}">${v}</td>`).join('');
+      tr.onclick = () => setInputs(row.in, true);
+      tb.appendChild(tr);
+    });
+  }
+  function syncUI() {
+    const g = S.gate;
+    [['tA', 0], ['tB', 1]].forEach(([id, i]) => {
+      const b = $(id); if (i >= g.inputs) return;
+      b.setAttribute('aria-pressed', String(S.vals[i] === 1));
+      b.querySelector('b').textContent = S.vals[i];
+    });
+  }
+  function syncOut(shown) {
+    const g = S.gate;
+    const parts = [`A = <span class="bit${S.vals[0]}">${S.vals[0]}</span>`];
+    if (g.inputs === 2) parts.push(`B = <span class="bit${S.vals[1]}">${S.vals[1]}</span>`);
+    const o = shown == null ? '<span style="color:#59607d">?</span>' : `<span class="bit${shown}">${shown}</span>`;
+    const html = parts.join('&nbsp;&nbsp;') + `&nbsp;&nbsp;→&nbsp;&nbsp;OUT = ${o}`;
+    const el = $('outLine');
+    if (el.innerHTML !== html) { el.innerHTML = html; el.dataset.out = shown == null ? '' : String(shown); }
+    const key = S.vals.join('');
+    document.querySelectorAll('#tt tbody tr').forEach((tr) => tr.classList.toggle('active', tr.dataset.key === key));
+  }
+
+  // ---------- цикл анимации
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    S.time += dt; S.tIn += dt;
+    demoTick(now);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    const v = view();
+    ctx.translate(v.ox, v.oy); ctx.scale(v.s, v.s);
+    const r = LC.drawCircuit(ctx, S.gate, { vals: S.vals, prev: S.prev, tIn: S.tIn, time: S.time });
+    if (!S.outAnnounced && S.tIn >= TIMING.FLIP) { S.outAnnounced = true; sOut(r.out); }
+    syncOut(r.outShown);
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- события
+  cv.addEventListener('click', (e) => {
+    const rect = cv.getBoundingClientRect();
+    const v = view();
+    const x = ((e.clientX - rect.left) * cv.width / rect.width - v.ox) / v.s;
+    const y = ((e.clientY - rect.top) * cv.height / rect.height - v.oy) / v.s;
+    LC.geom(S.gate).pins.forEach((p, i) => {
+      if (Math.hypot(x - LC.LAYOUT.nodeX, y - p.y) < 50 || (x < LC.LAYOUT.nodeX + 40 && Math.abs(y - p.y) < 30)) toggle(i);
+    });
+  });
+  $('tA').onclick = () => toggle(0);
+  $('tB').onclick = () => toggle(1);
+  $('bDemo').onclick = () => startDemo(false);
+  $('bStop').onclick = () => stopDemo();
+  $('bRepeat').onclick = () => { stopDemo(''); startDemo(true); };
+  $('bSound').onclick = (e) => { S.sound = !S.sound; e.currentTarget.setAttribute('aria-pressed', String(S.sound)); e.currentTarget.textContent = S.sound ? '🔊 Звук' : '🔇 Без звука'; };
+  window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    const k = e.key.toLowerCase();
+    if (k === 'a' || k === 'ф') toggle(0);
+    else if (k === 'b' || k === 'и') toggle(1);
+    else if (k === ' ') { e.preventDefault(); S.demo ? stopDemo() : startDemo(false); }
+    else if (/^[1-7]$/.test(k)) selectGate(GATES[+k - 1].id);
+  });
+
+  // API для автоматических тестов
+  window.LabAPI = { selectGate, setInputs: (v) => setInputs(v, true), state: () => S, startDemo, stopDemo };
+
+  buildChips(); selectGate('AND');
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
