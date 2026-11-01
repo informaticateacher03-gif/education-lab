@@ -42,13 +42,22 @@ def main():
     audio = np.frombuffer(raw, np.float32)
     judge = Judge()
     res = {"phrases": []}
+    # распознаём каждое предложение отдельно (окна субтитров): на длинных окнах
+    # Whisper иногда «перескакивает» на английский и искажает оценку
+    sentences = [(ph["id"], s) for ph in script.values() for s in zip(ph["sub"], ph["tts"])]
     for p in vt["phrases"]:
-        i0 = int(p["start"] * 48000)
-        i1 = int((p["start"] + p["dur"] + 0.25) * 48000)
-        heard = judge.hear(audio[i0:i1])
-        target = " ".join(script[p["id"]]["tts"])
-        score = difflib.SequenceMatcher(None, norm(heard), norm(target)).ratio()
-        res["phrases"].append({"id": p["id"], "heard": heard, "score": score})
+        subs = [s for s in vt["subs"] if p["start"] - 0.01 <= s["start"] <= p["start"] + p["dur"]]
+        heard_all, targets = [], []
+        for sub in subs:
+            tts = next(t for pid, (sb, t) in sentences if pid == p["id"] and sb == sub["text"])
+            i0 = int((sub["start"] - 0.1) * 48000)
+            i1 = int((min(sub["end"], p["start"] + p["dur"]) + 0.15) * 48000)
+            heard = judge.hear(audio[max(0, i0):i1])
+            heard_all.append(heard)
+            targets.append(tts)
+        # сравниваем склеенный текст реплики: у коротких предложений одна буква сильно меняет оценку
+        score = difflib.SequenceMatcher(None, norm(" ".join(heard_all)), norm(" ".join(targets))).ratio()
+        res["phrases"].append({"id": p["id"], "heard": " / ".join(heard_all), "score": score})
 
     v, sr = stem("stem_voice.wav")
     m, _ = stem("stem_music.wav")

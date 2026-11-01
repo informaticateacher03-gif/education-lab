@@ -211,7 +211,7 @@ function checkVoiceInMp4() {
     out = execFileSync('python3', [path.join(__dirname, 'voice/check_voice.py'), f], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   } catch (e) { ok('Голос в MP4 распознаётся', false, 'check_voice.py: ' + (e.stdout || e.message).slice(0, 200)); return; }
   const r = JSON.parse(out);
-  r.phrases.forEach((p) => ok(`Голос в MP4: «${p.id}» распознан (сходство ≥ 0.75)`, p.score >= 0.75, `${p.score.toFixed(2)} — «${p.heard}»`));
+  r.phrases.forEach((p) => ok(`Голос в MP4: «${p.id}» распознан (по предложениям, сходство ≥ 0.75)`, p.score >= 0.75, `${p.score.toFixed(2)} — «${p.heard}»`));
   ok('Голос громче музыки (стемы, окна реплик) ≥ 12 дБ', r.voice_over_music_db >= 12, `${r.voice_over_music_db.toFixed(1)} дБ`);
   ok('Вне реплик голосовая дорожка тихая (нет «фиктивного» голоса)', r.silence_ok, '');
 }

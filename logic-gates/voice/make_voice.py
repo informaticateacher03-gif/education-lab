@@ -122,7 +122,7 @@ def main():
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--voice-id", default=os.environ.get("ELEVENLABS_VOICE_ID", ""))
     ap.add_argument("--speed", type=float, default=0.9)
-    ap.add_argument("--takes", type=int, default=4, help="дублей на предложение (Piper); лучший выбирается по ASR")
+    ap.add_argument("--takes", type=int, default=8, help="дублей на предложение (Piper); лучший выбирается по ASR")
     ap.add_argument("--timing-only", action="store_true", help="только пересчитать таймлайн по готовому voice.json")
     a = ap.parse_args()
     if a.timing_only:
