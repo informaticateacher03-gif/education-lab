@@ -114,6 +114,19 @@ async function checkVideo(browser) {
   }, meta.tl);
   ok('Синхронизация входов, выхода, цвета лампы и таблицы', sync.length === 0, sync.length ? JSON.stringify(sync[0]).slice(0, 300) : `${meta.tl.length * 2} проверок`);
 
+  // указка ведущей: в каждом шаге — входы → лампа → ячейка OUT этого шага
+  const ptr = await page.evaluate((tl) => {
+    if (!document.getElementById('avatarHalf') || !window.AVATAR_HALF_SRC) return { skip: true };
+    const bad = [];
+    tl.forEach((s, i) => {
+      const next = tl[i + 1] && tl[i + 1].gate === s.gate ? tl[i + 1].t - 0.15 : s.segEnd - 0.5;
+      const checks = [[s.t + 0.2, 'inputs'], [s.flip + 0.1, 'lamp'], [Math.min(s.flip + 0.55, next), 'table']];
+      checks.forEach(([t, what]) => { const p = renderAt(t).pointer; if (!p || p.what !== what || p.k !== s.k) bad.push(`${s.gate} шаг ${s.k} ${what} @${t.toFixed(2)}: ${p && p.what}`); });
+    });
+    return { bad, n: tl.length * 3 };
+  }, meta.tl);
+  if (!ptr.skip) ok('Указка ведущей синхронна с шагами (входы → лампа → таблица)', ptr.bad.length === 0, ptr.bad.length ? ptr.bad.slice(0, 3).join('; ') : `${ptr.n} проверок`);
+
   const fin = await page.evaluate(() => {
     const bad = [];
     const fin = LogicVideo.SEGMENTS[LogicVideo.SEGMENTS.length - 1];

@@ -240,7 +240,9 @@
   }
 
   // Положение схемы в режиме «фокус» (одна схема на экране)
-  const FOCUS = { scale: 1.5, cy: 770 };
+  const FOCUS = { scale: 1.42, cy: 700 };
+  // таблица истинности в сцене схемы
+  const TABLE = { y: 1015, rowH: 96, colW: 180, headW: 210, size: 60 };
   function focusTransform(ctx) {
     const box = LC.CIRCUIT_BOX;
     const cx = (box.x0 + box.x1) / 2;
@@ -290,7 +292,7 @@
     ctx.restore();
     const ra = smooth(0.2, 0.55, u);
     ctx.save(); ctx.globalAlpha *= ra;
-    text(ctx, `«${g.ru.toUpperCase()}»`, W / 2, 360 + (1 - ra) * 20, { size: 56, weight: 800, color: C.nameSoft, glow: 12, maxWidth: AVATAR_IMG ? 600 : 900 });
+    text(ctx, `«${g.ru.toUpperCase()}»`, W / 2, 360 + (1 - ra) * 20, { size: 56, weight: 800, color: C.nameSoft, glow: 12, maxWidth: 900 });
     ctx.restore();
     // ГОСТ-значок
     const ga = smooth(0.6, 1.0, u);
@@ -327,7 +329,7 @@
       segs.push({ t: 'A = ', color: C.label }, vs(v ? v[0] : null));
       if (g.inputs === 2) segs.push({ t: '   B = ', color: C.label }, vs(v ? v[1] : null));
       segs.push({ t: '   →   OUT = ', color: C.label }, vs(res.outShown));
-      richText(ctx, segs, W / 2, 1035, { size: 50, weight: 700, mono: true, maxWidth: 980 });
+      richText(ctx, segs, W / 2, 962, { size: 50, weight: 700, mono: true, maxWidth: 980 });
       ctx.restore();
     }
 
@@ -335,11 +337,11 @@
     const tp = easeOut(smooth(0.7, 1.15, u));
     if (tp > 0) {
       const cs = LC.combos(g);
-      const colW = 180, headW = 210;
+      const colW = TABLE.colW, headW = TABLE.headW;
       const tw = headW + colW * cs.length;
       ctx.save(); ctx.globalAlpha *= tp;
       truthTable(ctx, g, {
-        x: (W - tw) / 2 + (1 - tp) * 520, y: 1100, colW, headW, rowH: 100, size: 62,
+        x: (W - tw) / 2 + (1 - tp) * 520, y: TABLE.y, colW, headW, rowH: TABLE.rowH, size: TABLE.size,
         active: st.cur, activeGlow: st.vals ? bump(st.tIn / 0.5) : 0,
         filled: (k) => {
           const s = st.steps[k];
@@ -356,8 +358,8 @@
     const fa = smooth(1.2, 1.6, u);
     if (fa > 0) {
       ctx.save(); ctx.globalAlpha *= fa;
-      const tableBottom = 1100 + 100 * (g.inputs === 1 ? 2 : 3);
-      richText(ctx, formulaSegs(g), W / 2, tableBottom + 95, { size: 60, weight: 800, glow: 10, maxWidth: 900 });
+      const tableBottom = TABLE.y + TABLE.rowH * (g.inputs === 1 ? 2 : 3);
+      richText(ctx, formulaSegs(g), W / 2, tableBottom + 78, { size: 60, weight: 800, glow: 10, maxWidth: 900 });
       if (!VT) text(ctx, g.rule, W / 2, tableBottom + 170, { size: 34, weight: 600, color: '#8d96c4', maxWidth: 960 });
       ctx.restore();
     }
@@ -469,31 +471,39 @@
     if (!s) return null;
     const a = Math.min(smooth(s.start, s.start + 0.12, t), 1 - smooth(s.end - 0.12, s.end, t));
     const o = { size: 46, weight: 700 };
-    const lines = wrap(ctx, s.text, 900, o);
-    const lh = 58;
-    const cy = seg.type === 'final' ? 1475 : 1640;
+    const side = seg.type === 'gate' && FIGURE_ON;
+    const fs = side ? 42 : 46;
+    o.size = fs;
+    const lines = wrap(ctx, s.text, side ? 580 : 900, o);
+    const lh = side ? 54 : 58;
+    const cy = seg.type === 'final' ? 1475 : side ? 1590 : 1640;
+    const cx = side ? 352 : W / 2;
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.font = `700 46px ${LC.FONT}`;
-    const bw = Math.min(1000, Math.max(...lines.map((l) => ctx.measureText(l).width)) + 56);
+    ctx.font = `700 ${fs}px ${LC.FONT}`;
+    const bw = Math.min(side ? 640 : 1000, Math.max(...lines.map((l) => ctx.measureText(l).width)) + 56);
     const bh = lines.length * lh + 26;
     ctx.fillStyle = 'rgba(2,3,10,0.72)';
-    roundRect(ctx, W / 2 - bw / 2, cy - bh / 2, bw, bh, 18); ctx.fill();
+    roundRect(ctx, cx - bw / 2, cy - bh / 2, bw, bh, 18); ctx.fill();
     ctx.strokeStyle = 'rgba(130,145,230,0.35)'; ctx.lineWidth = 2; ctx.stroke();
     lines.forEach((ln, i) => {
       const y = cy - ((lines.length - 1) * lh) / 2 + i * lh;
       // английские названия элементов — жёлтым, как на схемах
       const segs = ln.split(/(\b(?:XNOR|XOR|NAND|NOR|AND|OR|NOT)\b)/).filter(Boolean)
         .map((w) => (/^(XNOR|XOR|NAND|NOR|AND|OR|NOT)$/.test(w) ? { t: w, color: C.name, glow: 8 } : { t: w, color: '#ffffff' }));
-      richText(ctx, segs, W / 2, y, { size: 46, weight: 700, maxWidth: 960 });
+      richText(ctx, segs, cx, y, { size: fs, weight: 700, maxWidth: side ? 600 : 960 });
     });
     ctx.restore();
     return s.text;
   }
 
   // ------------------------------------------------ аватар ведущей
-  // Фото в круге; кольцо-эквалайзер и лёгкое масштабирование следуют громкости голоса.
+  // Заставка: фигура по пояс крупно. Сцены схем: фигура в левом нижнем углу,
+  // лазерная указка от стилуса показывает то, что происходит на схеме.
+  // Финал: лицо в круге у заголовка. Свечение/эквалайзер — по громкости голоса.
   const AVATAR_IMG = (typeof document !== 'undefined' && document.getElementById('avatar')) || null;
+  const AVATAR_HALF = (typeof document !== 'undefined' && document.getElementById('avatarHalf')) || null;
+  const FIGURE_ON = !!(AVATAR_HALF && root.AVATAR_HALF_SRC);
   const ENV = root.VOICE_ENV || null;
   function voiceLevel(t) {
     if (!ENV) return 0;
@@ -501,106 +511,190 @@
     const a = ENV.data[i0] || 0, b = ENV.data[i0 + 1] || 0;
     return (a + (b - a) * f) / 100;
   }
-  const AVATAR_HALF = (typeof document !== 'undefined' && document.getElementById('avatarHalf')) || null;
-  // фигура по пояс в заставке: 680×720 → высота 560, по центру сверху
-  const HALF = { h: 560, top: 22 };
-  HALF.w = HALF.h * 680 / 720; HALF.x = W / 2 - HALF.w / 2;
-  // лицо внутри фигуры (для «вылета» круглого аватара): центр (328,160), радиус ≈100 в пикселях исходника
-  const FACE_IN_HALF = { x: HALF.x + 328 * HALF.h / 720, y: HALF.top + 160 * HALF.h / 720, r: 100 * HALF.h / 720 };
-  const AV_LAYOUT = { intro: FACE_IN_HALF, gate: { x: 132, y: 262, r: 98 }, final: { x: 68, y: 110, r: 50 } };
-  function avatarPose(t) {
+  // исходник обрезки «по пояс»: 680×720; кончик стилуса (213,242), центр лица (328,160)
+  const SRC = { w: 680, h: 720, pen: { x: 213, y: 242 } };
+  const FIG = {
+    intro: { cx: W / 2, bottom: 582, h: 560 },
+    gate: { cx: 868, bottom: 1925, h: 480 },
+  };
+  function figurePose(t) {
     const seg = segmentAt(t);
-    const cur = AV_LAYOUT[seg.type];
-    const idx = SEGMENTS.indexOf(seg);
-    const prev = idx > 0 ? AV_LAYOUT[SEGMENTS[idx - 1].type] : cur;
-    if (prev === cur) return cur;
-    const u = (t - seg.start) / 0.7;
-    // сначала в сторону (x быстрее), потом вниз (y медленнее) — не пролетает через заголовок
-    const kx = easeOut(u), ky = LC.easeInOut(clamp((u - 0.25) / 0.75)), kr = LC.easeInOut(u);
-    return { x: lerp(prev.x, cur.x, kx), y: lerp(prev.y, cur.y, ky), r: lerp(prev.r, cur.r, kr) };
-  }
-  let halfCanvas = null;
-  function drawHalfFigure(ctx, t, seg) {
-    if (!AVATAR_HALF || !AVATAR_HALF.naturalWidth) return false;
-    const a = Math.min(smooth(0.05, 0.8, t), 1 - smooth(seg.end - 0.35, seg.end, t));
-    if (a <= 0) return true;
-    const lv = voiceLevel(t);
-    // фигура с растворяющимися краями (маска рисуется один раз)
-    if (!halfCanvas) {
-      halfCanvas = document.createElement('canvas');
-      halfCanvas.width = Math.round(HALF.w); halfCanvas.height = HALF.h;
-      const hc = halfCanvas.getContext('2d');
-      hc.drawImage(AVATAR_HALF, 0, 0, halfCanvas.width, halfCanvas.height);
-      hc.globalCompositeOperation = 'destination-in';
-      const gv = hc.createLinearGradient(0, 0, 0, HALF.h);
-      gv.addColorStop(0, 'rgba(0,0,0,0)'); gv.addColorStop(0.1, 'rgba(0,0,0,1)'); gv.addColorStop(0.72, 'rgba(0,0,0,1)'); gv.addColorStop(1, 'rgba(0,0,0,0)');
-      hc.fillStyle = gv; hc.fillRect(0, 0, halfCanvas.width, HALF.h);
-      const gh = hc.createLinearGradient(0, 0, halfCanvas.width, 0);
-      gh.addColorStop(0, 'rgba(0,0,0,0)'); gh.addColorStop(0.12, 'rgba(0,0,0,1)'); gh.addColorStop(0.88, 'rgba(0,0,0,1)'); gh.addColorStop(1, 'rgba(0,0,0,0)');
-      hc.fillStyle = gh; hc.fillRect(0, 0, halfCanvas.width, HALF.h);
+    if (seg.type === 'intro') return { ...FIG.intro, a: Math.min(smooth(0.05, 0.8, t), 1) };
+    if (seg.type === 'gate') {
+      const idx = SEGMENTS.indexOf(seg);
+      if (SEGMENTS[idx - 1] && SEGMENTS[idx - 1].type === 'intro') {
+        const k = LC.easeInOut((t - seg.start) / 0.9);
+        return { cx: lerp(FIG.intro.cx, FIG.gate.cx, k), bottom: lerp(FIG.intro.bottom, FIG.gate.bottom, k),
+          h: lerp(FIG.intro.h, FIG.gate.h, k), a: 1 };
+      }
+      return { ...FIG.gate, a: 1 };
     }
+    return { ...FIG.gate, a: 1 - smooth(seg.start, seg.start + 0.45, t) };
+  }
+  function penTip(p) {
+    const w = p.h * SRC.w / SRC.h;
+    return { x: p.cx - w / 2 + SRC.pen.x / SRC.w * w, y: p.bottom - p.h + SRC.pen.y / SRC.h * p.h };
+  }
+
+  let halfCanvas = null;
+  function figureCanvas() {
+    if (halfCanvas) return halfCanvas;
+    const h = 560, w = Math.round(h * SRC.w / SRC.h);
+    halfCanvas = document.createElement('canvas');
+    halfCanvas.width = w; halfCanvas.height = h;
+    const hc = halfCanvas.getContext('2d');
+    hc.drawImage(AVATAR_HALF, 0, 0, w, h);
+    hc.globalCompositeOperation = 'destination-in';
+    const gv = hc.createLinearGradient(0, 0, 0, h);
+    gv.addColorStop(0, 'rgba(0,0,0,0)'); gv.addColorStop(0.1, 'rgba(0,0,0,1)'); gv.addColorStop(0.72, 'rgba(0,0,0,1)'); gv.addColorStop(1, 'rgba(0,0,0,0)');
+    hc.fillStyle = gv; hc.fillRect(0, 0, w, h);
+    const gh = hc.createLinearGradient(0, 0, w, 0);
+    gh.addColorStop(0, 'rgba(0,0,0,0)'); gh.addColorStop(0.12, 'rgba(0,0,0,1)'); gh.addColorStop(0.88, 'rgba(0,0,0,1)'); gh.addColorStop(1, 'rgba(0,0,0,0)');
+    hc.fillStyle = gh; hc.fillRect(0, 0, w, h);
+    return halfCanvas;
+  }
+
+  function drawFigure(ctx, t, seg) {
+    if (!FIGURE_ON || !AVATAR_HALF.naturalWidth) return null;
+    const p = figurePose(t);
+    let a = p.a;
+    if (seg.type === 'intro') a = Math.min(a, 1); // заставка переходит в схему без затемнения фигуры
+    if (a <= 0) return null;
+    const lv = voiceLevel(t);
+    const cv = figureCanvas();
+    const w = p.h * SRC.w / SRC.h;
     ctx.save();
     ctx.globalAlpha = a;
     // свечение за фигурой — в такт голосу
-    const cx = W / 2, cy = HALF.top + HALF.h * 0.45;
-    const gr = ctx.createRadialGradient(cx, cy, 20, cx, cy, 330 + 60 * lv);
-    gr.addColorStop(0, LC.hexA('#3d6bff', 0.28 + 0.4 * lv)); gr.addColorStop(0.6, LC.hexA('#7a3dff', 0.12 + 0.2 * lv)); gr.addColorStop(1, LC.hexA('#7a3dff', 0));
-    ctx.fillStyle = gr; ctx.fillRect(0, 0, W, HALF.top + HALF.h + 80);
+    const cy = p.bottom - p.h * 0.55;
+    const R = p.h * (0.6 + 0.1 * lv);
+    const gr = ctx.createRadialGradient(p.cx, cy, 10, p.cx, cy, R);
+    gr.addColorStop(0, LC.hexA('#3d6bff', 0.26 + 0.4 * lv)); gr.addColorStop(0.6, LC.hexA('#7a3dff', 0.1 + 0.2 * lv)); gr.addColorStop(1, LC.hexA('#7a3dff', 0));
+    ctx.fillStyle = gr; ctx.fillRect(p.cx - R, cy - R, 2 * R, 2 * R);
+    // лёгкое «дыхание» и покачивание при речи
     const z = 1 + 0.012 * Math.sin(t * 0.9) + 0.012 * lv;
-    const yIn = (1 - easeOut(smooth(0.05, 0.9, t))) * 40;
-    ctx.translate(W / 2, HALF.top + HALF.h + yIn); ctx.scale(z, z);
-    ctx.drawImage(halfCanvas, -HALF.w / 2, -HALF.h);
+    const rot = 0.006 * Math.sin(t * 1.3) * (0.4 + lv);
+    const yIn = seg.type === 'intro' ? (1 - easeOut(smooth(0.05, 0.9, t))) * 40 : 0;
+    ctx.translate(p.cx, p.bottom + yIn); ctx.rotate(rot); ctx.scale(z, z);
+    ctx.drawImage(cv, -w / 2, -p.h, w, p.h);
     ctx.restore();
-    // подпись
-    const la = Math.min(smooth(0.5, 1.0, t), 1 - smooth(seg.end - 0.5, seg.end, t));
-    ctx.save(); ctx.globalAlpha = la;
-    text(ctx, 'Анна Колтунова', W / 2, HALF.top + HALF.h - 22, { size: 34, weight: 800, color: C.nameSoft, glow: 10, glowColor: '#000000' });
-    ctx.restore();
-    return true;
+    if (seg.type === 'intro') {
+      const la = Math.min(smooth(0.5, 1.0, t), 1 - smooth(seg.end - 0.5, seg.end, t));
+      ctx.save(); ctx.globalAlpha = la;
+      text(ctx, 'Анна Колтунова', W / 2, p.bottom - 22, { size: 34, weight: 800, color: C.nameSoft, glow: 10, glowColor: '#000000' });
+      ctx.restore();
+    }
+    return p;
   }
 
-  function drawAvatar(ctx, t) {
-    if (segmentAt(t).type === 'intro' && drawHalfFigure(ctx, t, segmentAt(t))) return;
+  // ---- лазерная указка
+  function focusPt(lx, ly) {
+    const box = LC.CIRCUIT_BOX;
+    const cxb = (box.x0 + box.x1) / 2;
+    return { x: W / 2 + (lx - cxb) * FOCUS.scale, y: FOCUS.cy + ly * FOCUS.scale };
+  }
+  /** Ключевые точки указки в сцене схемы: корпус → входы → лампа → ячейка OUT, для каждого шага. */
+  function pointerKeys(seg) {
+    const g = GATE[seg.id];
+    const G = LC.geom(g);
+    const L = LC.LAYOUT;
+    const n = LC.combos(g).length;
+    const rows = g.inputs === 1 ? 2 : 3;
+    const tw = TABLE.headW + TABLE.colW * n;
+    const keys = [{ t: 0.55, p: focusPt(G.textX, 0), what: 'gate' }];
+    gateSteps(seg).forEach((s, k) => {
+      keys.push({ t: s.t - 0.12, p: focusPt(L.nodeX, 0), what: 'inputs', k });
+      keys.push({ t: s.flip - 0.12, p: focusPt(L.lampX, 0), what: 'lamp', k });
+      keys.push({ t: s.flip + 0.3, p: { x: (W - tw) / 2 + TABLE.headW + (k + 0.5) * TABLE.colW, y: TABLE.y + (rows - 0.5) * TABLE.rowH }, what: 'table', k });
+    });
+    return keys;
+  }
+  function pointerAt(seg, u) {
+    const keys = pointerKeys(seg);
+    let i = -1;
+    keys.forEach((k, j) => { if (u >= k.t) i = j; });
+    if (i < 0) return null;
+    const cur = keys[i], prev = keys[Math.max(0, i - 1)];
+    const k = LC.easeInOut((u - cur.t) / 0.22);
+    return { x: lerp(prev.p.x, cur.p.x, k), y: lerp(prev.p.y, cur.p.y, k), what: cur.what, k: cur.k, settle: k };
+  }
+  function drawPointer(ctx, t, seg, fig) {
+    if (!fig || seg.type !== 'gate') return null;
+    const u = t - seg.start, D = seg.end - seg.start;
+    const a = Math.min(smooth(0.45, 0.75, u), 1 - smooth(D - 0.45, D - 0.1, u));
+    const tg = pointerAt(seg, u);
+    if (!tg || a <= 0) return null;
+    const P = penTip(fig);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.lineCap = 'round';
+    // кольцо-мишень обводит объект снаружи и не закрывает его
+    const pulse = 0.5 + 0.5 * Math.sin(t * 8);
+    const base = { gate: 78, inputs: 40, lamp: 58, table: 46 }[tg.what] || 40;
+    const rr = base + 5 * pulse + (1 - tg.settle) * 14;
+    const dx = tg.x - P.x, dy = tg.y - P.y, dl = Math.hypot(dx, dy) || 1;
+    const ex = tg.x - dx / dl * rr, ey = tg.y - dy / dl * rr;
+    // луч — до края кольца
+    const gr = ctx.createLinearGradient(P.x, P.y, ex, ey);
+    gr.addColorStop(0, 'rgba(255,240,170,1)'); gr.addColorStop(1, 'rgba(255,210,58,0.75)');
+    ctx.strokeStyle = gr; ctx.lineWidth = 5; ctx.shadowColor = C.name; ctx.shadowBlur = 18;
+    ctx.beginPath(); ctx.moveTo(P.x, P.y); ctx.lineTo(ex, ey); ctx.stroke();
+    // огонёк на кончике стилуса
+    const pg = ctx.createRadialGradient(P.x, P.y, 0, P.x, P.y, 18);
+    pg.addColorStop(0, 'rgba(255,255,255,1)'); pg.addColorStop(0.4, LC.hexA(C.name, 0.8)); pg.addColorStop(1, LC.hexA(C.name, 0));
+    ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(P.x, P.y, 18, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = LC.hexA(C.name, 0.9); ctx.lineWidth = 4; ctx.shadowBlur = 18;
+    ctx.beginPath(); ctx.arc(tg.x, tg.y, rr, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+    return tg;
+  }
+
+  // ---- лицо в круге (финал)
+  const CIRCLE = { x: 68, y: 110, r: 50 };
+  function drawCircleAvatar(ctx, t, seg) {
     if (!AVATAR_IMG || !AVATAR_IMG.complete || !AVATAR_IMG.naturalWidth) return;
-    const p = avatarPose(t);
-    const lv = voiceLevel(t);
-    const appear = smooth(0.1, 0.7, t);
+    const appear = smooth(seg.start + 0.2, seg.start + 0.8, t);
     if (appear <= 0) return;
+    const p = CIRCLE;
+    const lv = voiceLevel(t);
     const r = p.r * (0.92 + 0.08 * easeBack(appear)) * (1 + 0.025 * lv);
     ctx.save();
     ctx.globalAlpha = appear;
-    // кольцо-эквалайзер
-    const bars = 56;
+    const bars = 40;
     for (let i = 0; i < bars; i++) {
       const ang = (i / bars) * Math.PI * 2 - Math.PI / 2;
       const wob = 0.45 + 0.55 * Math.abs(Math.sin(i * 1.7 + t * 9) * Math.cos(i * 0.6 - t * 5.3));
       const len = r * (0.04 + 0.26 * lv * wob);
-      const c = i % 2 ? C.one : C.name;
-      ctx.strokeStyle = LC.hexA(c, 0.35 + 0.65 * lv);
-      ctx.lineWidth = Math.max(2, r * 0.035); ctx.lineCap = 'round';
+      ctx.strokeStyle = LC.hexA(i % 2 ? C.one : C.name, 0.35 + 0.65 * lv);
+      ctx.lineWidth = 2; ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(p.x + Math.cos(ang) * (r + 8), p.y + Math.sin(ang) * (r + 8));
-      ctx.lineTo(p.x + Math.cos(ang) * (r + 8 + len), p.y + Math.sin(ang) * (r + 8 + len));
+      ctx.moveTo(p.x + Math.cos(ang) * (r + 6), p.y + Math.sin(ang) * (r + 6));
+      ctx.lineTo(p.x + Math.cos(ang) * (r + 6 + len), p.y + Math.sin(ang) * (r + 6 + len));
       ctx.stroke();
     }
-    // свечение
-    ctx.shadowColor = '#b58cff'; ctx.shadowBlur = 24 + 30 * lv;
+    ctx.shadowColor = '#b58cff'; ctx.shadowBlur = 20 + 24 * lv;
     ctx.fillStyle = '#1a1040';
     ctx.beginPath(); ctx.arc(p.x, p.y, r + 3, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
-    // фото с лёгким «дыханием»
     ctx.save();
     ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.clip();
-    const z = 1.04 + 0.02 * Math.sin(t * 0.9) + 0.02 * lv;
-    const dx = 2 * Math.sin(t * 0.6) * (r / 100), dy = 2 * Math.cos(t * 0.5) * (r / 100) - 0.03 * lv * r;
-    const d = 2 * r * z;
-    ctx.drawImage(AVATAR_IMG, p.x - d / 2 + dx, p.y - d / 2 + dy, d, d);
+    const d = 2 * r * (1.04 + 0.02 * Math.sin(t * 0.9));
+    ctx.drawImage(AVATAR_IMG, p.x - d / 2, p.y - d / 2, d, d);
     ctx.restore();
-    ctx.lineWidth = Math.max(3, r * 0.05);
+    ctx.lineWidth = 3;
     ctx.strokeStyle = lv > 0.05 ? LC.hexA(C.one, 0.55 + 0.45 * lv) : 'rgba(181,140,255,0.9)';
     ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
+
+  function drawAvatar(ctx, t) {
+    const seg = segmentAt(t);
+    const fig = drawFigure(ctx, t, seg);
+    const ptr = drawPointer(ctx, t, seg, fig);
+    if (seg.type === 'final') drawCircleAvatar(ctx, t, seg);
+    return ptr;
+  }
+
 
   function renderFrame(ctx, t) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -611,7 +705,7 @@
     else if (seg.type === 'gate') drawGateSeg(ctx, t, seg);
     else drawFinal(ctx, t, seg);
     ctx.globalAlpha = 1;
-    drawAvatar(ctx, t);
+    info.last.pointer = drawAvatar(ctx, t);
     info.last.subtitle = drawSubtitle(ctx, t, seg);
     return info.last;
   }
@@ -635,6 +729,6 @@
 
   root.LogicVideo = {
     W, H, FPS, DURATION, SEGMENTS, renderFrame, renderPoster, timeline, audioEvents,
-    gateSteps, finalSteps, lampScreen, FOCUS, ROWS, info, SUBS, VT, subtitleAt,
+    gateSteps, finalSteps, lampScreen, pointerKeys, TABLE, FOCUS, ROWS, info, SUBS, VT, subtitleAt,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
