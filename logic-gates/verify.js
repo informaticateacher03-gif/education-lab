@@ -51,6 +51,7 @@ async function checkVideo(browser) {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto('file://' + path.join(__dirname, 'render/video.html'));
+  await page.waitForFunction(() => { const im = document.getElementById('avatar'); return !im || !window.AVATAR_SRC || (im.complete && im.naturalWidth > 0); });
 
   const meta = await page.evaluate(() => ({ D: LogicVideo.DURATION, FPS: LogicVideo.FPS, segs: LogicVideo.SEGMENTS, tl: LogicVideo.timeline() }));
   ok('Длительность 45–70 с, 30 FPS', meta.D >= 45 && meta.D <= 70 && meta.FPS === 30, `${meta.D} с`);
@@ -67,10 +68,14 @@ async function checkVideo(browser) {
       return !(p.start >= sg.start && p.start + p.dur <= sg.end - 0.3); });
     ok('Озвучка: каждая реплика внутри своей сцены (голос синхронен со схемой)', badPh.length === 0 && vt.phrases.length === script.phrases.length,
       `${vt.phrases.length} реплик, движок: ${vt.engine}`);
-    const wantSubs = script.phrases.flatMap((p) => p.sub);
+    // эталон субтитров — то, что реально звучит (voice.json пишут make_voice.py или use_recording.py)
+    const vjPath = path.join(__dirname, 'build/voice/voice.json');
+    const wantSubs = fs.existsSync(vjPath)
+      ? JSON.parse(fs.readFileSync(vjPath, 'utf8')).phrases.flatMap((p) => p.sentences.map((x) => x.sub))
+      : script.phrases.flatMap((p) => p.sub);
     const subsText = vt.subs.map((s) => s.text);
     const overlap = vt.subs.some((s, i) => i && s.start < vt.subs[i - 1].end);
-    ok('Субтитры: дословно текст озвучки, без наложений', JSON.stringify(subsText) === JSON.stringify(wantSubs) && !overlap, `${vt.subs.length} субтитров`);
+    ok('Субтитры: дословно сказанный текст, без наложений', JSON.stringify(subsText) === JSON.stringify(wantSubs) && !overlap, `${vt.subs.length} субтитров`);
     const subBad = await page.evaluate((subs) => {
       const bad = [];
       subs.forEach((s) => { const inf = renderAt((s.start + s.end) / 2); if (inf.subtitle !== s.text) bad.push(s.text); });

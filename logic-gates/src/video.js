@@ -290,7 +290,7 @@
     ctx.restore();
     const ra = smooth(0.2, 0.55, u);
     ctx.save(); ctx.globalAlpha *= ra;
-    text(ctx, `«${g.ru.toUpperCase()}»`, W / 2, 360 + (1 - ra) * 20, { size: 56, weight: 800, color: C.nameSoft, glow: 12, maxWidth: 900 });
+    text(ctx, `«${g.ru.toUpperCase()}»`, W / 2, 360 + (1 - ra) * 20, { size: 56, weight: 800, color: C.nameSoft, glow: 12, maxWidth: AVATAR_IMG ? 600 : 900 });
     ctx.restore();
     // ГОСТ-значок
     const ga = smooth(0.6, 1.0, u);
@@ -491,6 +491,76 @@
     return s.text;
   }
 
+  // ------------------------------------------------ аватар ведущей
+  // Фото в круге; кольцо-эквалайзер и лёгкое масштабирование следуют громкости голоса.
+  const AVATAR_IMG = (typeof document !== 'undefined' && document.getElementById('avatar')) || null;
+  const ENV = root.VOICE_ENV || null;
+  function voiceLevel(t) {
+    if (!ENV) return 0;
+    const i = t * ENV.fps, i0 = Math.floor(i), f = i - i0;
+    const a = ENV.data[i0] || 0, b = ENV.data[i0 + 1] || 0;
+    return (a + (b - a) * f) / 100;
+  }
+  const AV_LAYOUT = { intro: { x: W / 2, y: 290, r: 150 }, gate: { x: 132, y: 262, r: 98 }, final: { x: 68, y: 110, r: 50 } };
+  function avatarPose(t) {
+    const seg = segmentAt(t);
+    const cur = AV_LAYOUT[seg.type];
+    const idx = SEGMENTS.indexOf(seg);
+    const prev = idx > 0 ? AV_LAYOUT[SEGMENTS[idx - 1].type] : cur;
+    if (prev === cur) return cur;
+    const k = LC.easeInOut((t - seg.start) / 0.7);
+    return { x: lerp(prev.x, cur.x, k), y: lerp(prev.y, cur.y, k), r: lerp(prev.r, cur.r, k) };
+  }
+  function drawAvatar(ctx, t) {
+    if (!AVATAR_IMG || !AVATAR_IMG.complete || !AVATAR_IMG.naturalWidth) return;
+    const p = avatarPose(t);
+    const lv = voiceLevel(t);
+    const appear = smooth(0.1, 0.7, t);
+    if (appear <= 0) return;
+    const r = p.r * (0.92 + 0.08 * easeBack(appear)) * (1 + 0.025 * lv);
+    ctx.save();
+    ctx.globalAlpha = appear;
+    // кольцо-эквалайзер
+    const bars = 56;
+    for (let i = 0; i < bars; i++) {
+      const ang = (i / bars) * Math.PI * 2 - Math.PI / 2;
+      const wob = 0.45 + 0.55 * Math.abs(Math.sin(i * 1.7 + t * 9) * Math.cos(i * 0.6 - t * 5.3));
+      const len = r * (0.04 + 0.26 * lv * wob);
+      const c = i % 2 ? C.one : C.name;
+      ctx.strokeStyle = LC.hexA(c, 0.35 + 0.65 * lv);
+      ctx.lineWidth = Math.max(2, r * 0.035); ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(p.x + Math.cos(ang) * (r + 8), p.y + Math.sin(ang) * (r + 8));
+      ctx.lineTo(p.x + Math.cos(ang) * (r + 8 + len), p.y + Math.sin(ang) * (r + 8 + len));
+      ctx.stroke();
+    }
+    // свечение
+    ctx.shadowColor = '#b58cff'; ctx.shadowBlur = 24 + 30 * lv;
+    ctx.fillStyle = '#1a1040';
+    ctx.beginPath(); ctx.arc(p.x, p.y, r + 3, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // фото с лёгким «дыханием»
+    ctx.save();
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.clip();
+    const z = 1.04 + 0.02 * Math.sin(t * 0.9) + 0.02 * lv;
+    const dx = 2 * Math.sin(t * 0.6) * (r / 100), dy = 2 * Math.cos(t * 0.5) * (r / 100) - 0.03 * lv * r;
+    const d = 2 * r * z;
+    ctx.drawImage(AVATAR_IMG, p.x - d / 2 + dx, p.y - d / 2 + dy, d, d);
+    ctx.restore();
+    ctx.lineWidth = Math.max(3, r * 0.05);
+    ctx.strokeStyle = lv > 0.05 ? LC.hexA(C.one, 0.55 + 0.45 * lv) : 'rgba(181,140,255,0.9)';
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+    // подпись в заставке
+    const seg = segmentAt(t);
+    if (seg.type === 'intro') {
+      const la = Math.min(smooth(0.5, 1.0, t), 1 - smooth(seg.end - 0.5, seg.end, t));
+      ctx.save(); ctx.globalAlpha = la;
+      text(ctx, 'Анна Колтунова', p.x, p.y + r + 48, { size: 34, weight: 800, color: C.nameSoft, glow: 8 });
+      ctx.restore();
+    }
+  }
+
   function renderFrame(ctx, t) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
@@ -500,6 +570,7 @@
     else if (seg.type === 'gate') drawGateSeg(ctx, t, seg);
     else drawFinal(ctx, t, seg);
     ctx.globalAlpha = 1;
+    drawAvatar(ctx, t);
     info.last.subtitle = drawSubtitle(ctx, t, seg);
     return info.last;
   }

@@ -44,7 +44,8 @@ def main():
     res = {"phrases": []}
     # распознаём каждое предложение отдельно (окна субтитров): на длинных окнах
     # Whisper иногда «перескакивает» на английский и искажает оценку
-    sentences = [(ph["id"], s) for ph in script.values() for s in zip(ph["sub"], ph["tts"])]
+    vj = json.load(open(os.path.join(ROOT, "build", "voice", "voice.json"), encoding="utf-8"))
+    sentences = [(ph["id"], (s["sub"], s["tts"])) for ph in vj["phrases"] for s in ph["sentences"]]
     for p in vt["phrases"]:
         subs = [s for s in vt["subs"] if p["start"] - 0.01 <= s["start"] <= p["start"] + p["dur"]]
         heard_all, targets = [], []

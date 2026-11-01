@@ -89,6 +89,9 @@ def norm(t):
     import re
     t = t.lower().replace("ё", "е").replace("-", " ")
     t = re.sub(r"[^a-zа-я0-9 ]+", " ", t)
+    # Whisper иногда пишет «ноль/единицу» цифрами
+    t = re.sub(r"\b0\b", "ноль", t)
+    t = re.sub(r"\b1\b", "единицу", t)
     words = [LATIN.get(w, w) for w in t.split()]
     return " ".join(words).replace("экс ор", "эксор").replace("экс нор", "экснор")
 
@@ -197,18 +200,18 @@ def make_timing(meta):
 
     t = put("intro", 0.6)
     t = put("look", t + 0.35)
-    end = max(4.0, r(t + 0.55))
+    end = max(4.0, r(t + 0.4))
     segs.append({"type": "intro", "start": 0, "end": end})
     for gid in ["AND", "OR", "NOT", "NAND", "NOR", "XOR", "XNOR"]:
         start = end
         v_end = put(gid, start + 0.3)
         min_d = 5.5 if gid == "NOT" else 6.0
-        end = r(start + max(min_d, (v_end - start) + 1.1))
+        end = r(start + max(min_d, (v_end - start) + 0.75))
         segs.append({"type": "gate", "id": gid, "start": start, "end": end})
     start = end
     v_end = put("final", start + 0.6)
     text_at = r(v_end - start + 0.35)
-    end = r(start + text_at + 3.6)
+    end = r(start + text_at + 3.2)
     segs.append({"type": "final", "start": start, "end": end})
     # субтитр держится чуть дольше реплики, но не залезает на следующий
     for i, s in enumerate(subs):
@@ -221,6 +224,34 @@ def make_timing(meta):
         f.write("// Сгенерировано voice/make_voice.py — тайминг озвучки и субтитров.\n")
         f.write("window.VOICE_TIMING = " + json.dumps(timing, ensure_ascii=False, indent=1) + ";\n")
     print(f"✔ таймлайн: {end:.2f} c → {path}")
+    make_envelope(place, end)
+
+
+def make_envelope(place, duration, fps=30):
+    """Огибающая громкости голоса по кадрам (0..100) → src/voice-env.js — для анимации аватара."""
+    n = int(np.ceil(duration * fps)) + 1
+    env = np.zeros(n)
+    for p in place:
+        with wave.open(os.path.join(ROOT, p["file"])) as w:
+            a = np.frombuffer(w.readframes(w.getnframes()), "<i2").astype(np.float64) / 32768
+            sr = w.getframerate()
+        hop = sr // fps
+        for k in range(len(a) // hop):
+            i = int(round(p["start"] * fps)) + k
+            if i < n:
+                env[i] = max(env[i], np.sqrt(np.mean(a[k * hop:(k + 1) * hop] ** 2)))
+    db = 20 * np.log10(env + 1e-6)
+    v = np.clip((db + 42) / 36, 0, 1)  # −42 дБ → 0, −6 дБ → 1
+    # сглаживание: быстрая атака, плавный спад
+    out = np.zeros(n)
+    for i in range(n):
+        prev = out[i - 1] if i else 0
+        out[i] = v[i] if v[i] > prev else prev * 0.78 + v[i] * 0.22
+    path = os.path.join(ROOT, "src", "voice-env.js")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("// Сгенерировано voice/make_voice.py — громкость голоса по кадрам (0..100), 30 FPS.\n")
+        f.write("window.VOICE_ENV = { fps: %d, data: [%s] };\n" % (fps, ",".join(str(int(round(x * 100))) for x in out)))
+    print(f"✔ огибающая голоса: {n} кадров → {path}")
 
 
 if __name__ == "__main__":

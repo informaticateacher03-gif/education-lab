@@ -27,6 +27,7 @@ async function main() {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto('file://' + path.join(ROOT, 'render', 'video.html'));
+  await page.waitForFunction(() => { const im = document.getElementById('avatar'); return !im || !window.AVATAR_SRC || (im.complete && im.naturalWidth > 0); });
   await page.evaluate(() => document.fonts.ready);
 
   // обложка
