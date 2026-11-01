@@ -501,17 +501,66 @@
     const a = ENV.data[i0] || 0, b = ENV.data[i0 + 1] || 0;
     return (a + (b - a) * f) / 100;
   }
-  const AV_LAYOUT = { intro: { x: W / 2, y: 290, r: 150 }, gate: { x: 132, y: 262, r: 98 }, final: { x: 68, y: 110, r: 50 } };
+  const AVATAR_HALF = (typeof document !== 'undefined' && document.getElementById('avatarHalf')) || null;
+  // фигура по пояс в заставке: 680×720 → высота 560, по центру сверху
+  const HALF = { h: 560, top: 22 };
+  HALF.w = HALF.h * 680 / 720; HALF.x = W / 2 - HALF.w / 2;
+  // лицо внутри фигуры (для «вылета» круглого аватара): центр (328,160), радиус ≈100 в пикселях исходника
+  const FACE_IN_HALF = { x: HALF.x + 328 * HALF.h / 720, y: HALF.top + 160 * HALF.h / 720, r: 100 * HALF.h / 720 };
+  const AV_LAYOUT = { intro: FACE_IN_HALF, gate: { x: 132, y: 262, r: 98 }, final: { x: 68, y: 110, r: 50 } };
   function avatarPose(t) {
     const seg = segmentAt(t);
     const cur = AV_LAYOUT[seg.type];
     const idx = SEGMENTS.indexOf(seg);
     const prev = idx > 0 ? AV_LAYOUT[SEGMENTS[idx - 1].type] : cur;
     if (prev === cur) return cur;
-    const k = LC.easeInOut((t - seg.start) / 0.7);
-    return { x: lerp(prev.x, cur.x, k), y: lerp(prev.y, cur.y, k), r: lerp(prev.r, cur.r, k) };
+    const u = (t - seg.start) / 0.7;
+    // сначала в сторону (x быстрее), потом вниз (y медленнее) — не пролетает через заголовок
+    const kx = easeOut(u), ky = LC.easeInOut(clamp((u - 0.25) / 0.75)), kr = LC.easeInOut(u);
+    return { x: lerp(prev.x, cur.x, kx), y: lerp(prev.y, cur.y, ky), r: lerp(prev.r, cur.r, kr) };
   }
+  let halfCanvas = null;
+  function drawHalfFigure(ctx, t, seg) {
+    if (!AVATAR_HALF || !AVATAR_HALF.naturalWidth) return false;
+    const a = Math.min(smooth(0.05, 0.8, t), 1 - smooth(seg.end - 0.35, seg.end, t));
+    if (a <= 0) return true;
+    const lv = voiceLevel(t);
+    // фигура с растворяющимися краями (маска рисуется один раз)
+    if (!halfCanvas) {
+      halfCanvas = document.createElement('canvas');
+      halfCanvas.width = Math.round(HALF.w); halfCanvas.height = HALF.h;
+      const hc = halfCanvas.getContext('2d');
+      hc.drawImage(AVATAR_HALF, 0, 0, halfCanvas.width, halfCanvas.height);
+      hc.globalCompositeOperation = 'destination-in';
+      const gv = hc.createLinearGradient(0, 0, 0, HALF.h);
+      gv.addColorStop(0, 'rgba(0,0,0,0)'); gv.addColorStop(0.1, 'rgba(0,0,0,1)'); gv.addColorStop(0.72, 'rgba(0,0,0,1)'); gv.addColorStop(1, 'rgba(0,0,0,0)');
+      hc.fillStyle = gv; hc.fillRect(0, 0, halfCanvas.width, HALF.h);
+      const gh = hc.createLinearGradient(0, 0, halfCanvas.width, 0);
+      gh.addColorStop(0, 'rgba(0,0,0,0)'); gh.addColorStop(0.12, 'rgba(0,0,0,1)'); gh.addColorStop(0.88, 'rgba(0,0,0,1)'); gh.addColorStop(1, 'rgba(0,0,0,0)');
+      hc.fillStyle = gh; hc.fillRect(0, 0, halfCanvas.width, HALF.h);
+    }
+    ctx.save();
+    ctx.globalAlpha = a;
+    // свечение за фигурой — в такт голосу
+    const cx = W / 2, cy = HALF.top + HALF.h * 0.45;
+    const gr = ctx.createRadialGradient(cx, cy, 20, cx, cy, 330 + 60 * lv);
+    gr.addColorStop(0, LC.hexA('#3d6bff', 0.28 + 0.4 * lv)); gr.addColorStop(0.6, LC.hexA('#7a3dff', 0.12 + 0.2 * lv)); gr.addColorStop(1, LC.hexA('#7a3dff', 0));
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, W, HALF.top + HALF.h + 80);
+    const z = 1 + 0.012 * Math.sin(t * 0.9) + 0.012 * lv;
+    const yIn = (1 - easeOut(smooth(0.05, 0.9, t))) * 40;
+    ctx.translate(W / 2, HALF.top + HALF.h + yIn); ctx.scale(z, z);
+    ctx.drawImage(halfCanvas, -HALF.w / 2, -HALF.h);
+    ctx.restore();
+    // подпись
+    const la = Math.min(smooth(0.5, 1.0, t), 1 - smooth(seg.end - 0.5, seg.end, t));
+    ctx.save(); ctx.globalAlpha = la;
+    text(ctx, 'Анна Колтунова', W / 2, HALF.top + HALF.h - 22, { size: 34, weight: 800, color: C.nameSoft, glow: 10, glowColor: '#000000' });
+    ctx.restore();
+    return true;
+  }
+
   function drawAvatar(ctx, t) {
+    if (segmentAt(t).type === 'intro' && drawHalfFigure(ctx, t, segmentAt(t))) return;
     if (!AVATAR_IMG || !AVATAR_IMG.complete || !AVATAR_IMG.naturalWidth) return;
     const p = avatarPose(t);
     const lv = voiceLevel(t);
@@ -551,14 +600,6 @@
     ctx.strokeStyle = lv > 0.05 ? LC.hexA(C.one, 0.55 + 0.45 * lv) : 'rgba(181,140,255,0.9)';
     ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
-    // подпись в заставке
-    const seg = segmentAt(t);
-    if (seg.type === 'intro') {
-      const la = Math.min(smooth(0.5, 1.0, t), 1 - smooth(seg.end - 0.5, seg.end, t));
-      ctx.save(); ctx.globalAlpha = la;
-      text(ctx, 'Анна Колтунова', p.x, p.y + r + 48, { size: 34, weight: 800, color: C.nameSoft, glow: 8 });
-      ctx.restore();
-    }
   }
 
   function renderFrame(ctx, t) {

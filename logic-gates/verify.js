@@ -51,7 +51,7 @@ async function checkVideo(browser) {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto('file://' + path.join(__dirname, 'render/video.html'));
-  await page.waitForFunction(() => { const im = document.getElementById('avatar'); return !im || !window.AVATAR_SRC || (im.complete && im.naturalWidth > 0); });
+  await page.waitForFunction(() => [...document.querySelectorAll('img')].every((im) => !im.src || (im.complete && im.naturalWidth > 0)));
 
   const meta = await page.evaluate(() => ({ D: LogicVideo.DURATION, FPS: LogicVideo.FPS, segs: LogicVideo.SEGMENTS, tl: LogicVideo.timeline() }));
   ok('Длительность 45–70 с, 30 FPS', meta.D >= 45 && meta.D <= 70 && meta.FPS === 30, `${meta.D} с`);
